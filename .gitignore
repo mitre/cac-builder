@@ -1,45 +1,72 @@
-# Certificates
-certs/org/*.pem
-!certs/org/.gitkeep
+# Ignore certificate files
+certs/
+*.pem
+*.crt
+*.key
+*.p12
+*.pfx
+*.jks
+
+# Ignore split certificate directory and files
+split-certs/
+**/split-certs/
+part*.pem
+chunk-*
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+.secrets
 
 # Build artifacts
-output/*
-!output/.gitkeep
+build/
+output/
+dist/
+*.o
+*.a
+*.so
+*.dylib
+*.dll
 
-# Environment files
-.env
+# Container-related
+.container-*
+.docker-*
 
-# Docker related
-.docker/
-
-# Temporary files
-*.tmp
-*.bak
-*.swp
-*~
-
-# macOS specific files
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Windows specific files
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-
-# IDE files
-.idea/
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-.history
-*.code-workspace
-
-# Python
+# Python-related
 __pycache__/
 *.py[cod]
 *$py.class
-.pytest_cache/
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Node.js related
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store

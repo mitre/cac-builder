@@ -1,88 +1,108 @@
-# Certificate Options in ComplianceAsCode Builder
+# Certificate Management
 
-This document explains the certificate options available in the ComplianceAsCode builder and when to use each one.
+This document describes how certificates are handled in the ComplianceAsCode Builder.
 
-## Certificate Types
+## Overview
 
-The builder supports two different certificate options:
+The project requires CA certificates to communicate securely with GitHub and other services. These certificates are mounted into the container during the build process.
 
-1. **Primary CA Certificate** (`--cert`)
-2. **Extra Organization Certificate** (`--extra-cert`)
+## Certificate Options for Users
 
-## Primary CA Certificate (`--cert`)
+When building the container locally, you have several options for managing certificates:
 
-The primary CA certificate is the main certificate bundle that enables secure connections to GitHub and other services. This is the certificate that:
+### 1. Default Certificate Path
 
-- Gets installed in the standard CA trust store location
-- Enables git operations to work over HTTPS
-- Allows package managers and other tools to function with TLS
-
-By default, this is the MITRE CA bundle located at `./mitre-ca-bundle.pem` in the project root. You can specify a different one with:
+The setup script looks for a CA bundle specified in your environment or uses a default path:
 
 ```bash
-./setup.sh --cert /path/to/primary-ca-bundle.pem
-```
-
-**When to use a custom primary certificate:**
-
-- You're in a different organization that uses its own CA
-- You're working in an environment with a custom PKI infrastructure
-- You need to replace the MITRE certificate with another trusted bundle
-
-## Extra Organization Certificate (`--extra-cert`)
-
-The extra certificate option allows you to add an additional organization-specific certificate without replacing the primary one. This is useful when:
-
-- You need to connect to internal services that use a different CA
-- You're working across organizations with different certificate authorities
-- You need specialized certificates for specific compliance testing targets
-
-```bash
-./setup.sh --extra-cert /path/to/organization-specific-cert.pem
-```
-
-**When to use an extra certificate:**
-
-- You need to connect to both MITRE resources AND another organization's resources
-- You're testing compliance for systems that use a specific CA
-- You need to add specialized certificates for testing scenarios
-
-## Example Scenarios
-
-### Scenario 1: Default MITRE Environment
-
-```bash
+# Uses the default certificate path
 ./setup.sh
 ```
 
-This uses the MITRE CA bundle at the default location (`./mitre-ca-bundle.pem`).
+### 2. Custom CA Certificate
 
-### Scenario 2: Different Organization
-
-```bash
-./setup.sh --cert /path/to/company-ca-bundle.pem
-```
-
-This replaces the MITRE certificate with your organization's CA bundle.
-
-### Scenario 3: Cross-Organization Testing
+Specify a custom certificate path:
 
 ```bash
-./setup.sh --extra-cert /path/to/partner-org-cert.pem
+# Specify your own certificate location
+./setup.sh --cert /path/to/your/ca-bundle.pem
 ```
 
-This keeps the MITRE certificate as primary but adds another organization's certificate for additional connectivity.
+### 3. Extra Certificates
 
-### Scenario 4: Custom Environment with Multiple Certificates
+Add an additional certificate:
 
 ```bash
-./setup.sh --cert /path/to/custom-primary.pem --extra-cert /path/to/additional-cert.pem
+# Add an extra certificate alongside the primary one
+./setup.sh --extra-cert /path/to/org-cert.pem
 ```
 
-This sets up a completely custom certificate environment.
+### 4. Manual Certificate Placement
 
-## Technical Implementation
+You can manually place certificates in the project's certificate directory:
 
-1. The primary certificate (`--cert`) is copied to the container's main CA trust store
-2. The extra certificate (`--extra-cert`) is added to the trust store as an additional certificate
-3. Both certificates are then integrated into the container's certificate authority bundle
+```bash
+mkdir -p certs/org
+cp /path/to/your/ca-bundle.pem certs/org/ca-bundle.pem
+```
+
+All certificates are stored in the `./certs/org/` directory within the project.
+
+## Repository Secret for Published Containers
+
+For GitHub Actions workflows that build and publish official containers:
+
+1. The workflow uses repository secrets named `CA_BUNDLE` or split into `CA_BUNDLE_PART1` and `CA_BUNDLE_PART2`
+2. These secrets contain the organization CA bundle
+3. The certificate is included in the container during the build process
+4. Published containers on GitHub Container Registry include this certificate
+
+### Handling Large Certificates
+
+GitHub has a limit of 64KB per secret. For large certificates:
+
+1. Use our provided script to split your certificate:
+
+   ```bash
+   # Split certificate into multiple parts
+   ./scripts/split-cert-for-secrets.sh --parts 5 ./certs/org/your-ca-bundle.pem
+   ```
+
+2. Create GitHub secrets for each part:
+   - `CA_BUNDLE_PART1`: Content from part1.pem
+   - `CA_BUNDLE_PART2`: Content from part2.pem
+   - `CA_BUNDLE_PART3`: Content from part3.pem
+   - `CA_BUNDLE_PART4`: Content from part4.pem
+   - `CA_BUNDLE_PART5`: Content from part5.pem
+
+The script will automatically split your certificate and provide instructions.
+
+### Benefits of This Approach
+
+- **For MITRE Team Members**: Containers from GitHub Container Registry work on the MITRE network without additional setup
+- **For Public Users**: Can still use their own certificates when building locally
+- **For Repository**: No certificate files are committed to the repository
+
+## Troubleshooting Certificate Issues
+
+If you encounter SSL certificate errors:
+
+1. Verify your certificate is correctly placed at `./certs/org/ca-bundle.pem`
+2. Check that the certificate file is in PEM format
+3. In the container, you can verify the certificate was copied with:
+
+   ```bash
+   cat /etc/pki/ca-trust/source/anchors/ca-bundle.pem
+   ```
+
+4. Update the certificate store in the container:
+
+   ```bash
+   update-ca-trust
+   ```
+
+## Security Considerations
+
+- Never commit actual certificate files to the repository
+- The `.gitignore` file is configured to prevent accidental certificate commits
+- Use environment variables or repository secrets for sensitive certificate data

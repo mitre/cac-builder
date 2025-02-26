@@ -65,9 +65,9 @@ For more details on build types, see [docs/BUILD-TYPES.md](docs/BUILD-TYPES.md).
 
 You can configure certificates for secure connections:
 
-1. **Default CA Certificate**
-   - Uses MITRE CA bundle at `~/.aws/mitre-ca-bundle.pem`
-   - Automatically copied to `./certs/org/mitre-ca-bundle.pem`
+1. **Default Certificate**
+   - Automatically looked for in the project setup
+   - Place certificate at `./certs/org/mitre-ca-bundle.pem`
 
 2. **Custom CA Certificate**
    - Specify with `--cert` option
@@ -80,6 +80,37 @@ You can configure certificates for secure connections:
 
 For more details on certificate options, see [docs/CERTIFICATES.md](docs/CERTIFICATES.md).
 
+## SCAP Content Types
+
+The ComplianceAsCode builder can generate various types of SCAP content:
+
+1. **XCCDF** (Extensible Configuration Checklist Description Format)
+   - Primary compliance standard format
+   - Contains benchmarks, rules, and profiles
+   - Example: `ssg-rhel10-xccdf.xml`
+
+2. **OVAL** (Open Vulnerability and Assessment Language)
+   - Technical checking mechanisms
+   - Used by XCCDF for automated testing
+   - Example: `ssg-rhel10-oval.xml`
+
+3. **DataStreams**
+   - Collection format that bundles XCCDF, OVAL, and other content
+   - Provides a single file for distribution
+   - Example: `ssg-rhel10-ds.xml`
+
+4. **Ansible Playbooks**
+   - Remediation scripts in Ansible format
+   - Automatically fix non-compliant settings
+   - Located in `build/ansible`
+
+5. **Bash Scripts**
+   - Remediation scripts in Bash format
+   - Fix non-compliant settings on Linux systems
+   - Located in `build/bash`
+
+For a complete list of generated content types, check the `output/` directory after building a product.
+
 ## Setup and Usage
 
 Run the setup script to prepare the environment:
@@ -91,6 +122,8 @@ Run the setup script to prepare the environment:
 # Or with specific options
 ./setup.sh --build-type minimal --cert /path/to/ca-bundle.pem
 ```
+
+You can also create a `.env` file for persistent configuration (see `.env.example` for available options).
 
 For help with all available options:
 
@@ -122,17 +155,6 @@ build-product rhel10  # or any other product
 
 Find the generated files in the `./output/` directory on your host machine.
 
-## Integration with certsuite
-
-The generated XCCDF files can be integrated with certsuite for compliance scanning:
-
-```bash
-# Example integration
-certsuite compliance scan \
-  --xccdf ./output/ssg-rhel10-xccdf.xml \
-  --profile xccdf_org.ssgproject.content_profile_cis
-```
-
 ## Workflow Options
 
 This project supports different workflows depending on your needs:
@@ -161,6 +183,26 @@ docker-compose down
 docker-compose build --no-cache
 docker-compose up -d
 ```
+
+## For MITRE Team Members
+
+When using this project within the MITRE network:
+
+1. **Using Pre-built Containers**:
+   - The containers published to GitHub Container Registry are alreaady configured for MITRE.
+   - You can pull and use them directly:
+
+   ```bash
+   docker pull ghcr.io/mitre/cac-builder:full
+   ```
+
+2. **Building Locally**:
+   - Clone the repository
+   - Place your company CA bundle at `./certs/org/your-ca-bundle.pem` if you are behind a corporate proxy or firewall.
+   - Run `./setup.sh`
+   - Build with `docker-compose build`
+
+For details on certificate management, see [docs/CERTIFICATES.md](docs/CERTIFICATES.md).
 
 ## Contributing
 

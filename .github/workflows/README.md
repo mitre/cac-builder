@@ -24,6 +24,22 @@ This workflow publishes container images to GitHub Container Registry when chang
 - Tags images appropriately based on version/branch
 - Makes containers available for users without building locally
 
+## Security Considerations
+
+All workflows in this repository follow GitHub's security best practices:
+
+1. **Least Privilege Principle**: Workflows are granted only the permissions they need to function:
+   - Build & Test workflows: `contents: read`, `packages: read`
+   - Publish workflows: `contents: read`, `packages: write`
+
+2. **Secret Management**: Sensitive data like certificates are handled using GitHub Secrets.
+
+3. **Pinned Action Versions**: All external actions use specific versions instead of floating tags.
+
+4. **Workflow Token Permissions**: GitHub's `GITHUB_TOKEN` is granted only required permissions.
+
+For more information about GitHub Actions security, see the [GitHub Actions documentation](https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions).
+
 ## Usage
 
 ### Using the published containers
