@@ -80,28 +80,11 @@ echo -e "${BLUE}${BOLD}Updating workflow files for ${NUM_PARTS} certificate part
 # Create the certificate loading script snippet
 CERT_SCRIPT_FILE=$(mktemp)
 
+# Update the workflow file approach to handle parts with a simpler approach
 cat > "$CERT_SCRIPT_FILE" << 'EOF'
 mkdir -p certs/org
-
-# Function to create certificate from parts
-create_cert_from_parts() {
-  # Start with an empty file
-  : > certs/org/ca-bundle.pem
-  
-  # Add each available part (up to 20 parts)
-  for i in {1..20}; do
-    SECRET_NAME="CA_BUNDLE_PART$i"
-    if [ -n "$(eval echo \${{ secrets.$SECRET_NAME }})" ]; then
-      echo "Adding certificate part $i"
-      echo "$(eval echo \${{ secrets.$SECRET_NAME }})" >> certs/org/ca-bundle.pem
-    else
-      # Stop when we run out of parts
-      break
-    fi
-  done
-  
-  echo "Using CA certificate assembled from multiple parts"
-}
+# Start with an empty file
+touch certs/org/ca-bundle.pem
 
 # First try using single secret
 if [ -n "${{ secrets.CA_BUNDLE }}" ]; then
@@ -109,10 +92,28 @@ if [ -n "${{ secrets.CA_BUNDLE }}" ]; then
   echo "Using CA certificate from single secret"
 # Next try using split certificate parts
 elif [ -n "${{ secrets.CA_BUNDLE_PART1 }}" ]; then
-  create_cert_from_parts
+  # Add part 1
+  echo "${{ secrets.CA_BUNDLE_PART1 }}" > certs/org/ca-bundle.pem
+  echo "Adding certificate part 1"
+  
+  # Check for and add additional parts
+EOF
+
+# Add the requested number of parts to the script
+for ((i = 2; i <= NUM_PARTS; i++)); do
+  cat >> "$CERT_SCRIPT_FILE" << EOF
+  if [ -n "\${{ secrets.CA_BUNDLE_PART$i }}" ]; then
+    echo "\${{ secrets.CA_BUNDLE_PART$i }}" >> certs/org/ca-bundle.pem
+    echo "Adding certificate part $i"
+  fi
+EOF
+done
+
+cat >> "$CERT_SCRIPT_FILE" << 'EOF'
+  
+  echo "Using CA certificate assembled from multiple parts"
 else
   # Fallback to empty file
-  touch certs/org/empty-ca-bundle.pem
   echo "Using empty CA certificate file"
 fi
 EOF

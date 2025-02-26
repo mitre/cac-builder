@@ -125,7 +125,7 @@ for i in $(seq 1 $TOTAL_CHUNKS); do
     echo -e "  ${BOLD}CA_BUNDLE_PART$i${NC}: Content from ${YELLOW}$OUTPUT_DIR/part$i.pem${NC}"
 done
 
-# Update the workflow script
+# Update the workflow script - now correctly using the actual number of parts
 echo
 echo -e "${BLUE}${BOLD}Updating workflow files for $TOTAL_CHUNKS certificate parts...${NC}"
 "$SCRIPT_DIR/update-workflow-cert-splits.sh" --num-parts $TOTAL_CHUNKS

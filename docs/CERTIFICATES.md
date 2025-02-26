@@ -65,7 +65,7 @@ GitHub has a limit of 64KB per secret. For large certificates:
 
    ```bash
    # Split certificate into multiple parts
-   ./scripts/split-cert-for-secrets.sh --parts 5 ./certs/org/your-ca-bundle.pem
+   ./scripts/split-cert-for-secrets.sh --parts 9 ./certs/org/your-ca-bundle.pem
    ```
 
 2. Create GitHub secrets for each part:
@@ -74,6 +74,10 @@ GitHub has a limit of 64KB per secret. For large certificates:
    - `CA_BUNDLE_PART3`: Content from part3.pem
    - `CA_BUNDLE_PART4`: Content from part4.pem
    - `CA_BUNDLE_PART5`: Content from part5.pem
+   - `CA_BUNDLE_PART6`: Content from part6.pem
+   - `CA_BUNDLE_PART7`: Content from part7.pem
+   - `CA_BUNDLE_PART8`: Content from part8.pem
+   - `CA_BUNDLE_PART9`: Content from part9.pem
 
 The script will automatically split your certificate and provide instructions.
 
