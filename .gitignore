@@ -1,0 +1,45 @@
+# Certificates
+certs/org/*.pem
+!certs/org/.gitkeep
+
+# Build artifacts
+output/*
+!output/.gitkeep
+
+# Environment files
+.env
+
+# Docker related
+.docker/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# macOS specific files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows specific files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDE files
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history
+*.code-workspace
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/

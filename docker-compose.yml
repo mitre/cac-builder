@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  compliance:
+    build:
+      context: .
+      dockerfile: ${BUILD_TYPE:-full}.Dockerfile
+      args:
+        - BUILD_TYPE=${BUILD_TYPE:-full}
+        - EXTRA_CERT=${EXTRA_CERT:-false}
+    container_name: compliance-as-code
+    volumes:
+      - ./output:/output
+      # Mount extra certificate if available
+      - ./certs/org/extra-ca-bundle.pem:/extra-ca-bundle.pem:ro
+    tty: true
+    command: >
+      -c "source /etc/profile.d/welcome.sh &&
+          tail -f /dev/null"
+

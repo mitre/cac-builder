@@ -1,0 +1,5 @@
+# Configuration file for act (local GitHub Actions testing)
+# Documentation: https://github.com/nektos/act#configuration
+
+# Use a smaller image for faster testing
+-P ubuntu-latest=catthehacker/ubuntu:act-latest
