@@ -25,10 +25,13 @@ jobs:
         run: |
           mkdir -p certs/org
           touch certs/org/mitre-ca-bundle.pem
-          
-      - name: Create Dockerfile symlinks
+      
+      # Modified to ensure Dockerfiles exist instead of relying on symlinks
+      - name: Prepare Dockerfiles
         run: |
-          ./scripts/update-dockerfiles.sh
+          # Instead of relying on symlinks, directly reference the actual files
+          echo "Using Dockerfile for full build"
+          echo "Using Dockerfile.optimized for minimal build"
       
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
@@ -52,7 +55,8 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./minimal.Dockerfile
+          # Directly use the actual Dockerfile.optimized instead of a symlink
+          file: ./Dockerfile.optimized
           push: true
           tags: |
             ghcr.io/${{ github.repository }}:minimal
@@ -65,7 +69,8 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./full.Dockerfile
+          # Directly use the actual Dockerfile instead of a symlink
+          file: ./Dockerfile
           push: true
           tags: |
             ghcr.io/${{ github.repository }}:latest
