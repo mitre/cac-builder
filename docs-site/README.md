@@ -2,6 +2,16 @@
 
 This directory contains the documentation website for the ComplianceAsCode Builder project, built with [Hugo](https://gohugo.io/) and the [Docsy](https://www.docsy.dev/) theme.
 
+## Documentation Source
+
+**IMPORTANT:** Most documentation content is automatically synchronized from the main Markdown files in the repository. 
+
+- Do not edit the Markdown files in the `content/` directory directly
+- Instead, edit the source files in the repository root and `docs/` directory
+- Run the `./scripts/sync-docs.sh` script to update the Hugo content
+
+This ensures we maintain a single source of truth for documentation.
+
 ## Local Development
 
 ### Prerequisites

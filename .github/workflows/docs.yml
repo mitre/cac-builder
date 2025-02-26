@@ -39,6 +39,11 @@ jobs:
           cd docs-site/themes/docsy
           npm install
       
+      - name: Sync Documentation
+        run: |
+          chmod +x ./scripts/sync-docs.sh
+          ./scripts/sync-docs.sh
+          
       - name: Build
         run: |
           cd docs-site
@@ -49,7 +54,7 @@ jobs:
         uses: actions/configure-pages@v3
       
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v3
         with:
           path: ./docs-site/public
 
