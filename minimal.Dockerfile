@@ -1,1 +1,0 @@
-/Users/alippold/github/mitre/cac-builder/Dockerfile.optimized

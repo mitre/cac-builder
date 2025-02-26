@@ -32,77 +32,23 @@ jobs:
         uses: docker/setup-buildx-action@v2
       
       - name: Create certificate file for build
+        env:
+          CA_BUNDLE: ${{ secrets.CA_BUNDLE }}
+          CA_BUNDLE_PART1: ${{ secrets.CA_BUNDLE_PART1 }}
+          CA_BUNDLE_PART2: ${{ secrets.CA_BUNDLE_PART2 }}
+          CA_BUNDLE_PART3: ${{ secrets.CA_BUNDLE_PART3 }}
+          CA_BUNDLE_PART4: ${{ secrets.CA_BUNDLE_PART4 }}
+          CA_BUNDLE_PART5: ${{ secrets.CA_BUNDLE_PART5 }}
+          CA_BUNDLE_PART6: ${{ secrets.CA_BUNDLE_PART6 }}
+          CA_BUNDLE_PART7: ${{ secrets.CA_BUNDLE_PART7 }}
+          CA_BUNDLE_PART8: ${{ secrets.CA_BUNDLE_PART8 }}
+          CA_BUNDLE_PART9: ${{ secrets.CA_BUNDLE_PART9 }}
         run: |
-          mkdir -p certs/org
+          # Use the dedicated script to assemble certificates with validation
+          ./scripts/assemble-certificates.sh --verify
           
-          # Start with an empty file
-          touch certs/org/ca-bundle.pem
-          
-          # First try using single secret
-          if [ -n "${{ secrets.CA_BUNDLE }}" ]; then
-            # Use the single bundle secret
-            echo "${{ secrets.CA_BUNDLE }}" > certs/org/ca-bundle.pem
-            echo "Using CA certificate from single secret"
-          # Next try using split certificate parts
-          elif [ -n "${{ secrets.CA_BUNDLE_PART1 }}" ]; then
-            # For split certificates, start with part 1
-            echo "${{ secrets.CA_BUNDLE_PART1 }}" > certs/org/ca-bundle.pem
-            echo "Adding certificate part 1"
-            
-            # Then append each additional part that exists
-            # Part 2
-            if [ -n "${{ secrets.CA_BUNDLE_PART2 }}" ]; then
-              echo "${{ secrets.CA_BUNDLE_PART2 }}" >> certs/org/ca-bundle.pem
-              echo "Adding certificate part 2"
-            fi
-            
-            # Part 3
-            if [ -n "${{ secrets.CA_BUNDLE_PART3 }}" ]; then
-              echo "${{ secrets.CA_BUNDLE_PART3 }}" >> certs/org/ca-bundle.pem
-              echo "Adding certificate part 3"
-            fi
-            
-            # Part 4
-            if [ -n "${{ secrets.CA_BUNDLE_PART4 }}" ]; then
-              echo "${{ secrets.CA_BUNDLE_PART4 }}" >> certs/org/ca-bundle.pem
-              echo "Adding certificate part 4"
-            fi
-            
-            # Part 5
-            if [ -n "${{ secrets.CA_BUNDLE_PART5 }}" ]; then
-              echo "${{ secrets.CA_BUNDLE_PART5 }}" >> certs/org/ca-bundle.pem
-              echo "Adding certificate part 5"
-            fi
-            
-            # Part 6
-            if [ -n "${{ secrets.CA_BUNDLE_PART6 }}" ]; then
-              echo "${{ secrets.CA_BUNDLE_PART6 }}" >> certs/org/ca-bundle.pem
-              echo "Adding certificate part 6"
-            fi
-            
-            # Part 7
-            if [ -n "${{ secrets.CA_BUNDLE_PART7 }}" ]; then
-              echo "${{ secrets.CA_BUNDLE_PART7 }}" >> certs/org/ca-bundle.pem
-              echo "Adding certificate part 7"
-            fi
-            
-            # Part 8
-            if [ -n "${{ secrets.CA_BUNDLE_PART8 }}" ]; then
-              echo "${{ secrets.CA_BUNDLE_PART8 }}" >> certs/org/ca-bundle.pem
-              echo "Adding certificate part 8"
-            fi
-            
-            # Part 9
-            if [ -n "${{ secrets.CA_BUNDLE_PART9 }}" ]; then
-              echo "${{ secrets.CA_BUNDLE_PART9 }}" >> certs/org/ca-bundle.pem
-              echo "Adding certificate part 9"
-            fi
-            
-            echo "Using CA certificate assembled from multiple parts"
-          else
-            # Fallback to empty file
-            echo "Using empty CA certificate file"
-          fi
+          # Show the assembled certificate info
+          ls -la certs/org/
       
       - name: Prepare Dockerfiles
         run: |

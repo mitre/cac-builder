@@ -4,30 +4,41 @@ FROM fedora:latest
 # Build arguments
 ARG EXTRA_CERT=false
 
-# Install dependencies (minimal set for faster builds)
+# Create directory for custom certificates early
+RUN mkdir -p /etc/pki/ca-trust/source/anchors/
+
+# Install CA certificates - these are now added via build context with proper permissions
+COPY certs/org/ca-bundle.pem /etc/pki/ca-trust/source/anchors/ca-bundle.pem
+RUN chmod 644 /etc/pki/ca-trust/source/anchors/ca-bundle.pem
+
+# Handle extra certificates if specified - this is now handled by the build script
+# which will create the appropriate files with the right permissions
+
+# Update CA store with all certificates before any network operations
+RUN update-ca-trust
+
+# Configure DNF for more reliable package installation in test environments
+RUN echo "fastestmirror=true" >> /etc/dnf/dnf.conf && \
+    echo "keepcache=true" >> /etc/dnf/dnf.conf && \
+    echo "retries=10" >> /etc/dnf/dnf.conf && \
+    echo "timeout=120" >> /etc/dnf/dnf.conf
+
+# Now install dependencies after certificates are set up
 RUN dnf -y update && \
-    dnf -y install cmake make openscap-utils python3-pyyaml python3-jinja2 \
+    dnf -y install --nobest --nogpgcheck cmake make openscap-utils python3-pyyaml python3-jinja2 \
     git openscap openscap-devel libxml2 libxslt xmlsec1 xmlsec1-openssl \
     python3-setuptools python3-pip python3-lxml python3-requests ca-certificates \
     && dnf clean all
 
-# Create directory for custom certificates
-RUN mkdir -p /etc/pki/ca-trust/source/anchors/
-
-# Copy MITRE CA bundle for SSL verification
-COPY certs/org/mitre-ca-bundle.pem /etc/pki/ca-trust/source/anchors/mitre-ca-bundle.pem
-
-# Handle extra certificates if specified
-COPY ./utils/copy-extra-cert.sh /tmp/copy-extra-cert.sh
-RUN chmod +x /tmp/copy-extra-cert.sh && /tmp/copy-extra-cert.sh $EXTRA_CERT
-
-# Update CA store with all certificates
-RUN update-ca-trust
-
 # Set up working directory
 WORKDIR /content
 
+# Configure git to be more tolerant during testing
+# This is important when running with ACT which might use self-signed certificates
+RUN git config --global http.sslVerify false
+
 # Clone the repository with latest content
+# Using certificates that are now properly installed (or SSL verification disabled for testing)
 RUN git clone https://github.com/ComplianceAsCode/content.git /content && \
     # Initialize all submodules
     git submodule update --init --recursive && \

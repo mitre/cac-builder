@@ -103,4 +103,4 @@ echo
 echo -e "${YELLOW}Next steps:${NC}"
 echo -e "1. Review the commit with ${BOLD}git show${NC}"
 echo -e "2. Push to GitHub with ${BOLD}git push -u origin main${NC}"
-echo -e "3. Once pushed, test GitHub Actions workflows with ${BOLD}./scripts/test-workflows.sh --list${NC}"
+echo -e "3. Once pushed, test GitHub Actions workflows with ${BOLD}./scripts/test-github-actions.sh --list${NC}"

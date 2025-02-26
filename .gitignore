@@ -18,6 +18,8 @@ chunk-*
 .env.local
 .env.*.local
 .secrets
+.github-act.env
+CLAUDE.md
 
 # Build artifacts
 build/
@@ -32,6 +34,8 @@ dist/
 # Container-related
 .container-*
 .docker-*
+scripts/full.Dockerfile
+scripts/minimal.Dockerfile
 
 # Python-related
 __pycache__/

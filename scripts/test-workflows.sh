@@ -43,7 +43,7 @@ usage() {
 }
 
 # Parse arguments
-WORKFLOW=""
+WORKFLOW="local/build-test-local.yml"
 EVENT="push"
 JOB=""
 LIST=false
@@ -91,6 +91,9 @@ fi
 # List workflows and jobs if requested
 if [ "$LIST" = true ]; then
     echo -e "${BLUE}${BOLD}Available workflows:${NC}"
+    
+    # Check standard workflows
+    echo -e "${BLUE}${BOLD}Standard workflows:${NC}"
     for file in "$ROOT_DIR/.github/workflows"/*.yml; do
         if [ -f "$file" ]; then
             workflow_name=$(basename "$file")
@@ -106,6 +109,29 @@ if [ "$LIST" = true ]; then
             echo ""
         fi
     done
+    
+    # Check local testing workflows
+    echo -e "${BLUE}${BOLD}Local testing workflows:${NC}"
+    if [ -d "$ROOT_DIR/.github/workflows/local" ]; then
+        for file in "$ROOT_DIR/.github/workflows/local"/*.yml; do
+            if [ -f "$file" ]; then
+                workflow_name="local/$(basename "$file")"
+                echo -e "${BLUE}${BOLD}$workflow_name${NC}"
+
+                # Extract job names (basic grep approach)
+                echo -e "${YELLOW}Jobs:${NC}"
+                grep -A 1 "jobs:" "$file" | grep -v "jobs:" | grep -v -- "--" | sed 's/^\s*//g' | sed 's/:.*$//g' | while read -r job; do
+                    if [ -n "$job" ]; then
+                        echo -e "  - ${job}"
+                    fi
+                done
+                echo ""
+            fi
+        done
+    else
+        echo -e "${YELLOW}No local testing workflows found${NC}"
+    fi
+    
     exit 0
 fi
 
@@ -114,6 +140,9 @@ echo -e "${BLUE}${BOLD}Preparing environment for workflow testing...${NC}"
 
 # Create necessary directories and files for testing
 "$SCRIPT_DIR/prepare-ci.sh"
+
+# Assemble certificates with test mode enabled
+"$SCRIPT_DIR/assemble-certificates.sh" --output-dir "$ROOT_DIR/certs/org" --test-mode
 
 # Build command based on parameters
 cmd="act"

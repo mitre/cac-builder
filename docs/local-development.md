@@ -17,16 +17,16 @@ Use the provided script to test workflows:
 
 ```bash
 # List available workflows and jobs
-./scripts/test-workflows.sh --list
+./scripts/test-github-actions.sh --list
 
 # Test a specific workflow
-./scripts/test-workflows.sh --workflow build-test.yml
+./scripts/test-github-actions.sh --workflow build-test.yml
 
 # Test a specific job in a workflow
-./scripts/test-workflows.sh --workflow publish-container.yml --job push-to-registry
+./scripts/test-github-actions.sh --workflow publish-container.yml --job push-to-registry
 
 # Simulate a specific event (e.g., pull_request)
-./scripts/test-workflows.sh --event pull_request
+./scripts/test-github-actions.sh --event pull_request
 ```
 
 ### How Local Testing Works

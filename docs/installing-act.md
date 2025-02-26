@@ -147,7 +147,7 @@ act -s SECRET_NAME=secret_value
 
 ## Next Steps
 
-After installing Act, see [Local Development](local-development.md) for information on how to use our `test-workflows.sh` script to test GitHub Actions workflows.
+After installing Act, see [Local Development](local-development.md) for information on how to use our `test-github-actions.sh` script to test GitHub Actions workflows.
 
 ## macOS with Docker Desktop Specific Setup
 
@@ -159,11 +159,34 @@ For optimal performance with Act on macOS:
 2. Go to **Settings** (gear icon)
 3. Navigate to **Resources**:
    - Increase **Memory** to at least 4GB
-   - Allocate at least 2 **CPUs**
+   - Allocate at least 2-4 **CPUs**
    - Set **Swap** to at least 1GB
 4. Click **Apply & Restart**
 
-### Troubleshooting macOS Specific Issues
+### M-series Chip Considerations
+
+If you're running on an Apple M-series (ARM) chip, you'll need some additional configuration:
+
+1. Specify the architecture when running act:
+
+   ```bash
+   # For M-series MacBooks, running ARM architecture
+   act --container-architecture linux/arm64
+   
+   # Or force x86_64 architecture (may be slower but more compatible)
+   act --container-architecture linux/amd64
+   ```
+
+2. Our test script already has this built in:
+
+   ```bash
+   # Run with arm64 architecture
+   ./scripts/test-github-actions.sh -a arm64
+   ```
+
+### Docker Socket and Permissions
+
+Act requires access to the Docker socket. On macOS, this often requires special handling:
 
 1. **Permission Issues**:
 
@@ -172,7 +195,45 @@ For optimal performance with Act on macOS:
    sudo chmod 666 /var/run/docker.sock
    ```
 
-2. **Performance Issues**:
+2. **Socket Location Issues**:
+   
+   Docker Desktop on macOS uses a different socket location than the default Linux path. If you see socket-related errors, explicitly set the socket path:
+
+   ```bash
+   # Find your socket location
+   docker context inspect | grep "SocketPath"
+   
+   # Use that socket path with act
+   act --container-daemon-socket /Users/username/Library/Containers/com.docker.docker/Data/docker.sock
+   ```
+
+3. **Alternative Docker Socket Approach**:
+   
+   You can also try mounting the socket directory when running act:
+
+   ```bash
+   # Create a directory for the Docker socket if it doesn't exist
+   mkdir -p ~/.docker/run
+   
+   # Run act with a specific socket location
+   act --bind -v ~/.docker/run:/var/run
+   ```
+
+### Troubleshooting Docker Context
+
+If you're still having socket issues, check your Docker context:
+
+```bash
+# List available Docker contexts
+docker context ls
+
+# Ensure you're using the desktop-linux context
+docker context use desktop-linux
+```
+
+### Other macOS Troubleshooting Tips
+
+1. **Performance Issues**:
    - Ensure Docker Desktop has sufficient resources
    - Use the `--cpu-profile-path` flag to identify performance bottlenecks:
 
@@ -180,14 +241,20 @@ For optimal performance with Act on macOS:
      act --cpu-profile-path cpu.prof
      ```
 
-3. **Volume Mounting Issues**:
+2. **Volume Mounting Issues**:
    - Ensure Docker Desktop has access to the directories you're working with
    - In Docker Desktop settings, check File Sharing / Resources > File sharing
+   - Try running with the `-b` flag to bind working directory
 
-### Using Act with Docker Desktop CLI
+3. **Certificate File Access**:
+   - Ensure certificate files have proper permissions (readable)
+   - When creating files in scripts, use `chmod 644` to ensure they're readable
 
-You can specify Docker Desktop explicitly:
-
-```bash
-act --container-daemon-socket /var/run/docker.sock
-```
+4. **Simplified Testing**:
+   - Use our `-p` (prepare only) flag to just set up the environment without running act:
+   
+   ```bash
+   ./scripts/test-github-actions.sh -w build-test.yml -a arm64 -p
+   ```
+   
+   - This will show you the exact command to run manually

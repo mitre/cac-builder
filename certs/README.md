@@ -7,8 +7,9 @@ This directory contains CA certificates used by the ComplianceAsCode builder.
 ```
 certs/
 ├── org/             # Organization-specific certificates
-│   ├── mitre-ca-bundle.pem    # MITRE CA certificate bundle
-│   └── extra-ca-bundle.pem    # Additional organization certificate (if provided)
+│   ├── ca-bundle.pem           # Primary CA certificate bundle
+│   ├── organization-ca-bundle.pem  # Symlink to ca-bundle.pem for compatibility
+│   └── extra-ca-bundle.pem     # Additional organization certificate (if provided)
 └── README.md        # This file
 ```
 
@@ -16,10 +17,27 @@ certs/
 
 To add a new organization's certificate:
 
-1. Place the certificate in the `org/` directory
-2. Use the `--cert` or `--extra-cert` options with the setup script
+1. Use the `--cert` option with the setup script to add your primary certificate
+2. Use the `--extra-cert` option to add any additional certificates
 
 Example:
 ```bash
-./setup.sh --cert ./certs/org/your-org-ca-bundle.pem
+# Add your primary certificate
+./setup.sh --cert /path/to/your-org-ca-bundle.pem
+
+# Add an extra certificate
+./setup.sh --extra-cert /path/to/extra-ca-bundle.pem
 ```
+
+## Certificate Permissions
+
+All certificates are stored with 644 permissions (readable by all users, writable only by owner) for security. These permissions are maintained when they are copied into the container.
+
+## Certificate Handling
+
+The Docker build process:
+1. Copies certificates into the container's trust store
+2. Updates the certificate trust database
+3. Ensures certificates are available before any network operations
+
+For GitHub Actions workflows, certificates are assembled from repository secrets and given appropriate permissions before building the container.

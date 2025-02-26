@@ -103,13 +103,13 @@ Follow the instructions in [Installing Act](installing-act.md) to set up Act on 
 
 ```bash
 # Make the test script executable
-chmod +x scripts/test-workflows.sh
+chmod +x scripts/test-github-actions.sh
 
 # List available workflows
-./scripts/test-workflows.sh --list
+./scripts/test-github-actions.sh --list
 
 # Test a specific workflow
-./scripts/test-workflows.sh --workflow build-test.yml
+./scripts/test-github-actions.sh --workflow build-test.yml
 ```
 
 ## Setting Up Your Editor

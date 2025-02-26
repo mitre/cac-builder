@@ -96,22 +96,36 @@ if [ -n "$CUSTOM_CERT_PATH" ]; then
     echo -e "${BLUE}Extra certificate:${NC} $CUSTOM_CERT_PATH"
 fi
 
-# Check if MITRE CA bundle exists
+# Setup certificate environment variables
 if [ -f "$CA_PATH" ]; then
     echo -e "${GREEN}Found CA bundle at $CA_PATH${NC}"
-    cp "$CA_PATH" "$SCRIPT_DIR/certs/org/mitre-ca-bundle.pem"
+    export CA_BUNDLE=$(cat "$CA_PATH")
 else
     echo -e "${YELLOW}Warning: CA bundle not found at $CA_PATH${NC}"
-    echo -e "${YELLOW}Creating an empty file (you'll need to add the real certificate)${NC}"
-    touch "$SCRIPT_DIR/certs/org/mitre-ca-bundle.pem"
-    echo -e "${YELLOW}Please add your CA bundle to ./certs/org/mitre-ca-bundle.pem${NC}"
+    echo -e "${YELLOW}Will create a placeholder certificate file${NC}"
+    export CA_BUNDLE=""
 fi
+
+# Use the certificate assembly script
+echo -e "${BLUE}Assembling certificates${NC}"
+"$SCRIPT_DIR/scripts/assemble-certificates.sh" --output-dir "$SCRIPT_DIR/certs/org"
+
+if [ ! -f "$SCRIPT_DIR/certs/org/ca-bundle.pem" ]; then
+    echo -e "${RED}Error: Certificate assembly failed${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}Certificate assembled successfully${NC}"
 
 # Handle extra certificate if specified
 if [ -n "$CUSTOM_CERT_PATH" ]; then
     if [ -f "$CUSTOM_CERT_PATH" ]; then
         echo -e "${GREEN}Found extra certificate at $CUSTOM_CERT_PATH${NC}"
+        
+        # Copy to proper location with correct permissions
         cp "$CUSTOM_CERT_PATH" "$SCRIPT_DIR/certs/org/extra-ca-bundle.pem"
+        chmod 644 "$SCRIPT_DIR/certs/org/extra-ca-bundle.pem"
+        
         # Set environment variable for docker-compose
         echo "EXTRA_CERT=true" >"$SCRIPT_DIR/.env"
         echo "EXTRA_CERT_PATH=./certs/org/extra-ca-bundle.pem" >>"$SCRIPT_DIR/.env"
@@ -120,19 +134,31 @@ if [ -n "$CUSTOM_CERT_PATH" ]; then
         exit 1
     fi
 else
+    # No extra certificate provided
     echo "EXTRA_CERT=false" >"$SCRIPT_DIR/.env"
-    echo "EXTRA_CERT_PATH=./certs/org/extra-ca-bundle.pem" >>"$SCRIPT_DIR/.env"
+    echo "EXTRA_CERT_PATH=" >>"$SCRIPT_DIR/.env"
 fi
 
 # Set build type in environment file
 echo "BUILD_TYPE=$BUILD_TYPE" >>"$SCRIPT_DIR/.env"
 
+# Set the appropriate Dockerfile based on build type
+if [ "$BUILD_TYPE" = "full" ]; then
+    echo "DOCKERFILE=Dockerfile" >>"$SCRIPT_DIR/.env"
+elif [ "$BUILD_TYPE" = "minimal" ]; then
+    echo "DOCKERFILE=Dockerfile.optimized" >>"$SCRIPT_DIR/.env"
+else
+    # Fallback to ensure a valid value
+    echo "DOCKERFILE=Dockerfile" >>"$SCRIPT_DIR/.env"
+fi
+
 # Create output directory
 mkdir -p "$SCRIPT_DIR/output"
 
-# Create Dockerfile symlinks
-echo -e "${BLUE}Creating Dockerfile symlinks...${NC}"
-bash "$SCRIPT_DIR/scripts/update-dockerfiles.sh"
+# We no longer need to create Dockerfile symlinks as we're now using direct references
+echo -e "${BLUE}Using direct Dockerfile references...${NC}"
+echo "Full build: Dockerfile"
+echo "Minimal build: Dockerfile.optimized"
 
 echo -e "${GREEN}Setup complete!${NC}"
 echo -e "You can now build the Docker container:"
