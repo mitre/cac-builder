@@ -99,8 +99,9 @@ jobs:
             fi
           } > output/amd64-build-info.txt
       
+      # Update to v4
       - name: Upload amd64 artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: cac-test-content-amd64
           path: |
@@ -209,8 +210,9 @@ jobs:
             fi
           } > output/arm64-build-info.txt
       
+      # Update to v4
       - name: Upload arm64 artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: cac-test-content-arm64
           path: |
@@ -228,8 +230,9 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      # Update to v4
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: artifacts
       
@@ -263,8 +266,9 @@ jobs:
             echo "No ARM64 build info available" >> summary/README.md
           fi
       
+      # Update to v4
       - name: Upload summary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: cac-builder-test-summary
           path: summary/
