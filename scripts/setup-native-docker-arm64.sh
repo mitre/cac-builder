@@ -34,7 +34,8 @@ mkdir -p /tmp/lima
 echo -e "${YELLOW}Creating Lima configuration...${NC}"
 cat > lima-config.yaml << EOF
 # Lima configuration optimized for GitHub Actions
-arch: "${ARCH}"
+# Lima expects "aarch64" not "arm64" for architecture
+arch: "aarch64"
 images:
 - location: "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img"
   arch: "aarch64"
