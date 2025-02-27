@@ -1,0 +1,93 @@
+title: ComplianceAsCode Builder
+description: Docker-based tooling for working with ComplianceAsCode/content
+baseurl: "/cac-builder" # the subpath of your site
+url: "https://mitre.github.io" # the base hostname & protocol
+
+# Theme settings
+remote_theme: just-the-docs/just-the-docs
+color_scheme: dark
+
+# Enable or disable the site search
+search_enabled: true
+# Supports true (default) or false
+search:
+  # Split pages into sections that can be searched individually
+  # Supports 1 - 6, default: 2
+  heading_level: 2
+  # Maximum amount of previews per search result
+  # Default: 3
+  previews: 3
+  # Maximum amount of words to display before a matched word in the preview
+  # Default: 5
+  preview_words_before: 5
+  # Maximum amount of words to display after a matched word in the preview
+  # Default: 10
+  preview_words_after: 10
+  # Display the relative url in search results
+  # Supports true (default) or false
+  rel_url: true
+
+# Aux links for the upper right navigation
+aux_links:
+  "ComplianceAsCode Builder on GitHub":
+    - "//github.com/mitre/cac-builder"
+
+# Makes Aux links open in a new tab. Default is false
+aux_links_new_tab: true
+
+# Back to top link
+back_to_top: true
+back_to_top_text: "Back to top"
+
+# Footer content
+footer_content: "Copyright &copy; 2024 The MITRE Corporation. Distributed by an <a href=\"https://github.com/mitre/cac-builder/blob/main/LICENSE.md\">Apache 2.0 license.</a>"
+
+# Footer last edited timestamp
+last_edit_timestamp: true
+last_edit_time_format: "%b %e %Y at %I:%M %p"
+
+# Footer "Edit this page on GitHub" link text
+gh_edit_link: true
+gh_edit_link_text: "Edit this page on GitHub"
+gh_edit_repository: "https://github.com/mitre/cac-builder"
+gh_edit_branch: "main"
+gh_edit_view_mode: "tree"
+gh_edit_source: docs
+
+# Navigation structure
+nav:
+  - title: Home
+    url: /
+  - title: Getting Started
+    url: /getting-started/
+    children:
+      - title: Prerequisites
+        url: /getting-started/prerequisites/
+      - title: Installation
+        url: /getting-started/installation/
+      - title: Configuration
+        url: /getting-started/configuration/
+      - title: First Build
+        url: /getting-started/first-build/
+      - title: Troubleshooting
+        url: /getting-started/troubleshooting/
+  - title: Documentation
+    url: /documentation/
+    children:
+      - title: Build Types
+        url: /documentation/build-types/
+      - title: Certificate Management
+        url: /documentation/certificate-management/
+      - title: Workflow Options
+        url: /documentation/workflow-options/
+      - title: Project Structure
+        url: /documentation/project-structure/
+  - title: Development
+    url: /development/
+    children:
+      - title: Contributing
+        url: /development/contributing/
+      - title: Local Development
+        url: /development/local-workflow/
+      - title: Installing Act
+        url: /development/installing-act/

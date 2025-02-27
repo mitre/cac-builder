@@ -1,3 +1,10 @@
+---
+layout: default
+title: Workflow Options
+parent: Documentation
+nav_order: 3
+---
+
 # ComplianceAsCode Workflow Options
 
 This document outlines different approaches to building and using the ComplianceAsCode content with the cac-builder tooling.

@@ -1,32 +1,52 @@
 # ComplianceAsCode Builder Documentation
 
-This directory contains documentation for the ComplianceAsCode builder project.
+This directory contains the documentation for the ComplianceAsCode Builder project.
 
-## Getting Started
+## Local Development
 
-- [Setup Local Development](setup-local-development.md): Complete guide to setting up your development environment
-- [Local Development](local-development.md): Working with the project locally
-- [Installing Act](installing-act.md): How to install Act for local GitHub Actions testing
+To preview the documentation site locally:
 
-## Configuration Options
+1. Install Jekyll and Ruby dependencies:
+```bash
+cd docs
+gem install bundler
+bundle install
+```
 
-- [BUILD-TYPES.md](BUILD-TYPES.md): Explanation of different build types (full vs. minimal)
-- [CERTIFICATES.md](CERTIFICATES.md): Information about certificate management
-- [workflow-options.md](workflow-options.md): Details about different workflow options
+2. Run the Jekyll server:
+```bash
+bundle exec jekyll serve
+```
 
-## Additional Documentation
+3. Open your browser to http://localhost:4000/cac-builder/
 
-- [Project Structure](../PROJECT-STRUCTURE.md): Overview of the project's file organization
-- [GitHub Workflows](../.github/workflows/README.md): Information about CI/CD workflows
+## Structure
 
-## Quick Links
+The documentation is organized into sections:
 
-- [Main README](../README.md): Project overview and quick start
-- [Setup Script](../setup.sh): Main entry point for using the project
+- Getting Started - Quick guides to help you get up and running
+- Documentation - Detailed guides on aspects of the project
+- Development - Information for contributors and developers
 
-## Project Governance
+## Adding new content
 
-- [Contributing Guidelines](../CONTRIBUTING.md): How to contribute to the project
-- [Code of Conduct](../CODE_OF_CONDUCT.md): Community standards and expectations
-- [License](../LICENSE.md): Project licensing information
-- [Notice](../NOTICE.md): Copyright notices and attributions
+1. Create a Markdown file in the appropriate directory
+2. Add front matter to the top of the file:
+```yaml
+---
+layout: default
+title: Your Page Title
+parent: Section Name
+nav_order: 1
+---
+```
+
+3. Write your content in Markdown format
+4. Link to other pages using relative links with the Jekyll relref shortcode:
+```markdown
+[Link text]({{< relref "/section/page" >}})
+```
+
+## Jekyll Theme
+
+This documentation uses the [Just the Docs](https://just-the-docs.github.io/just-the-docs/) theme with dark mode enabled.

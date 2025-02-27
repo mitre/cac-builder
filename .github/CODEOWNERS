@@ -1,0 +1,15 @@
+# These owners will be the default owners for everything in
+# the repo. Unless a later match takes precedence,
+# these owners will be requested for review when someone 
+# opens a pull request.
+*       @mitre/saf
+
+# Documentation ownership
+/docs/  @mitre/saf-admin
+
+# Workflow and CI ownership
+/.github/workflows/ @mitre/saf-admin
+
+# Script ownership
+/scripts/ @mitre/saf-admin
+/utils/   @mitre/saf-admin

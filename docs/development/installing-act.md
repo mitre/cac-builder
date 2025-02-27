@@ -1,3 +1,10 @@
+---
+layout: default
+title: Installing Act
+parent: Development
+nav_order: 3
+---
+
 # Installing Act for Local GitHub Actions Testing
 
 [Act](https://github.com/nektos/act) is a tool that allows you to run GitHub Actions workflows locally. This guide covers how to install and configure Act on different platforms.

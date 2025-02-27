@@ -1,3 +1,10 @@
+---
+layout: default
+title: Certificate Management
+parent: Documentation
+nav_order: 2
+---
+
 # Certificate Management
 
 This document describes how certificates are handled in the ComplianceAsCode Builder.

@@ -1,13 +1,13 @@
 ---
-title: "Build Types"
-linkTitle: "Build Types"
-weight: 15
-description: Different container build options for ComplianceAsCode Builder
+layout: default
+title: Build Types
+parent: Documentation
+nav_order: 1
 ---
 
 # ComplianceAsCode Container Build Options
 
-ComplianceAsCode Builder offers two different build configurations to balance between build time, container size, and immediate product availability.
+This document explains the different build options available for the ComplianceAsCode container.
 
 ## Full Build vs. Minimal Build
 
@@ -18,10 +18,6 @@ The full build pre-builds common compliance profiles during container creation:
 ```bash
 ./setup.sh --build-type full
 ```
-
-{{< alert color="info" >}}
-The full build creates a larger container but provides immediate access to common profiles.
-{{< /alert >}}
 
 **Characteristics:**
 
@@ -44,10 +40,6 @@ The minimal build only prepares the build environment without building any produ
 ```bash
 ./setup.sh --build-type minimal
 ```
-
-{{< alert color="success" >}}
-The minimal build creates a smaller container with faster build times but requires building products on-demand.
-{{< /alert >}}
 
 **Characteristics:**
 

@@ -1,3 +1,10 @@
+---
+layout: default
+title: Local Development
+parent: Development
+nav_order: 2
+---
+
 # Local Development
 
 This document provides instructions for local development and testing of the ComplianceAsCode Builder project.
