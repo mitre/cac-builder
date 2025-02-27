@@ -25,80 +25,44 @@ if ! command -v brew &> /dev/null; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
 fi
 
-# Install Docker CLI
-echo -e "${YELLOW}Installing Docker CLI...${NC}"
-brew install docker
+# Install Docker CLI and Colima
+echo -e "${YELLOW}Installing Docker CLI and Colima...${NC}"
+brew install docker colima
 
+# Set up Colima with appropriate settings
 if [ "$ARCH" == "arm64" ]; then
   # For Apple Silicon M1/M2 Macs
-  echo -e "${YELLOW}Detected Apple Silicon, installing Rancher Desktop...${NC}"
-  brew install --cask rancher
-  
-  # Give Rancher time to start
-  echo "Waiting for Rancher Desktop services to start..."
-  timeout=120
-  
-  # First try to use Rancher's Docker socket
-  until test -S ~/Library/Application\ Support/rancher-desktop/run/docker.sock || [ $timeout -eq 0 ]; do
-    if [ $(($timeout % 10)) -eq 0 ]; then
-      echo "Waiting for Docker socket... ($timeout seconds left)"
-    fi
-    sleep 1
-    ((timeout--))
-  done
-  
-  # Set up the Docker socket
-  if test -S ~/Library/Application\ Support/rancher-desktop/run/docker.sock; then
-    mkdir -p ~/.docker
-    ln -sf ~/Library/Application\ Support/rancher-desktop/run/docker.sock ~/.docker/run-docker.sock
-    export DOCKER_HOST=unix://~/.docker/run-docker.sock
-    echo "export DOCKER_HOST=unix://~/.docker/run-docker.sock" >> ~/.zshrc
-    echo -e "${GREEN}Rancher Desktop Docker socket linked successfully${NC}"
-  else
-    echo -e "${RED}Rancher Desktop did not start properly${NC}"
-    echo -e "${YELLOW}Trying Docker Desktop as fallback...${NC}"
-    brew install --cask docker
-    
-    # Open Docker Desktop
-    open -a Docker
-    
-    # Wait for Docker to start
-    echo "Waiting for Docker Desktop to start..."
-    timeout=60
-    while ! docker info &>/dev/null && [ $timeout -gt 0 ]; do
-      sleep 2
-      if [ $(($timeout % 10)) -eq 0 ]; then
-        echo "Waiting for Docker... ($timeout seconds left)"
-      fi
-      ((timeout-=2))
-    done
-  fi
+  echo -e "${YELLOW}Detected Apple Silicon, configuring ARM64-optimized Colima...${NC}"
+  colima start --cpu 4 --memory 8 --disk 50 --vm-type=vz --vz-rosetta --mount-type=virtiofs
 else
   # For Intel Macs
-  echo -e "${YELLOW}Detected Intel Mac, installing Docker Desktop...${NC}"
-  brew install --cask docker
-  
-  # Start Docker
-  open -a Docker
-  
-  # Wait for Docker to start
-  echo "Waiting for Docker to start..."
-  timeout=60
-  while ! docker info &>/dev/null && [ $timeout -gt 0 ]; do
-    sleep 2
-    if [ $(($timeout % 10)) -eq 0 ]; then
-      echo "Waiting for Docker... ($timeout seconds left)"
-    fi
-    ((timeout-=2))
-  done
+  echo -e "${YELLOW}Detected Intel Mac, configuring Intel-optimized Colima...${NC}"
+  colima start --cpu 4 --memory 8 --disk 50 --mount-type=virtiofs
 fi
 
+# Wait for Docker to start
+echo "Waiting for Docker to be available..."
+timeout=60
+while ! docker version &>/dev/null && [ $timeout -gt 0 ]; do
+  if [ $(($timeout % 10)) -eq 0 ]; then
+    echo "Waiting for Docker... ($timeout seconds left)"
+  fi
+  sleep 2
+  ((timeout-=2))
+done
+
 # Verify Docker is running
-if docker info &>/dev/null; then
+if docker version &>/dev/null; then
   echo -e "${GREEN}${BOLD}Docker is running successfully!${NC}"
-  docker info | grep "Server Version"
+  docker version
+  docker info | grep "Architecture\|Operating System"
+  
+  # Add to shell RC files
+  echo '# Docker/Colima configuration' >> ~/.zshrc
+  echo 'colima start 2>/dev/null || true' >> ~/.zshrc
 else
-  echo -e "${RED}${BOLD}Docker failed to start after multiple attempts${NC}"
+  echo -e "${RED}${BOLD}Docker failed to start${NC}"
+  colima status
   exit 1
 fi
 

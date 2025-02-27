@@ -127,64 +127,31 @@ jobs:
           echo "Architecture: $(uname -m)"
           echo "Processor: $(sysctl -n machdep.cpu.brand_string)"
       
-      - name: Install Docker with Rancher Desktop
+      - name: Setup Docker with Colima
         run: |
-          # Install Homebrew if needed
-          if ! command -v brew &> /dev/null; then
-            echo "Installing Homebrew..."
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-            echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
-            eval "$(/opt/homebrew/bin/brew shellenv)"
-          fi
+          # Install Homebrew packages
+          brew install docker colima
           
-          # Install Docker CLI
-          brew install docker
-          
-          # Install Rancher Desktop for M1/M2 Macs
-          echo "Installing Rancher Desktop..."
-          brew install --cask rancher
-          
-          # Set environment variables for Docker to use Rancher's socket
-          echo "Setting up Docker environment..."
-          mkdir -p ~/.docker
-          
-          # Wait for Rancher services to start
-          echo "Waiting for Rancher Desktop services to start..."
-          timeout=120
-          until test -S ~/Library/Application\ Support/rancher-desktop/run/docker.sock || [ $timeout -eq 0 ]; do
-            echo "Waiting for Docker socket... ($timeout seconds left)"
-            sleep 5
-            ((timeout-=5))
-          done
-          
-          # Link the socket if it exists
-          if test -S ~/Library/Application\ Support/rancher-desktop/run/docker.sock; then
-            ln -sf ~/Library/Application\ Support/rancher-desktop/run/docker.sock ~/.docker/run-docker.sock
-            export DOCKER_HOST=unix://~/.docker/run-docker.sock
-            echo "DOCKER_HOST=unix://~/.docker/run-docker.sock" >> $GITHUB_ENV
-            echo "Docker socket linked successfully"
-          else
-            # Fallback to Docker Desktop if available
-            echo "Rancher Desktop failed to start, trying Docker CLI directly..."
-            brew install --cask docker
-            open -a Docker
-            
-            # Wait for Docker to start
-            echo "Waiting for Docker to start..."
-            timeout=60
-            while ! docker info &>/dev/null && [ $timeout -gt 0 ]; do
-              echo "Waiting for Docker... ($timeout seconds left)"
-              sleep 2
-              ((timeout-=2))
-            done
-          fi
+          # Configure Colima with higher resources for our build
+          echo "Starting Colima with ARM64 configuration..."
+          colima start --cpu 4 --memory 8 --disk 50 --vm-type=vz --vz-rosetta --mount-type=virtiofs
           
           # Verify Docker is running
-          if docker info &>/dev/null; then
+          echo "Waiting for Docker to be available..."
+          timeout=60
+          while ! docker version &>/dev/null && [ $timeout -gt 0 ]; do
+            echo "Waiting for Docker to be ready... ($timeout seconds left)"
+            sleep 2
+            ((timeout-=2))
+          done
+          
+          if docker version &>/dev/null; then
             echo "Docker is running successfully"
-            docker info
+            docker version
+            docker info | grep "Architecture\|Operating System"
           else
-            echo "Docker failed to start after multiple attempts"
+            echo "Docker failed to start"
+            colima status
             exit 1
           fi
       
