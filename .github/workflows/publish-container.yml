@@ -104,26 +104,39 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       
-      - name: Install Docker for Apple Silicon
+      - name: Install Docker with Colima
         run: |
-          curl -L https://desktop.docker.com/mac/main/arm64/Docker.dmg -o Docker.dmg
-          sudo hdiutil attach Docker.dmg
-          sudo cp -R "/Volumes/Docker/Docker.app" /Applications/
-          sudo hdiutil detach "/Volumes/Docker"
-          open -a "/Applications/Docker.app" --args --unattended
+          # Install Homebrew if needed
+          if ! command -v brew &> /dev/null; then
+            echo "Installing Homebrew..."
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+            echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+            eval "$(/opt/homebrew/bin/brew shellenv)"
+          fi
           
-          # Wait for Docker to start
+          # Install Colima and Docker CLI
+          brew install colima docker
+          
+          # Start Colima with extra resources for container builds
+          echo "Starting Colima..."
+          colima start --cpu 4 --memory 8 --disk 50 --arch aarch64
+          
+          # Wait for Docker to be fully available
           echo "Waiting for Docker to start..."
-          timeout=60
-          while ! docker info > /dev/null 2>&1; do
-            if [ "$timeout" -le 0 ]; then
-              echo "Docker failed to start"
-              exit 1
-            fi
+          timeout=30
+          until docker info &>/dev/null || [ $timeout -eq 0 ]; do
             sleep 1
-            timeout=$((timeout - 1))
+            ((timeout--))
           done
-          echo "Docker is running"
+          
+          if docker info &>/dev/null; then
+            echo "Docker is running"
+            docker info | grep "Server Version"
+          else
+            echo "Docker failed to start"
+            colima status
+            exit 1
+          fi
       
       - name: Create certificate file for build
         env:
