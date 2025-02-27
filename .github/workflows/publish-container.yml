@@ -28,6 +28,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       
+      # Add QEMU for multi-platform support
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: 'arm64,amd64'
+      
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       
@@ -81,10 +87,16 @@ jobs:
           # Directly use the actual Dockerfile.optimized instead of a symlink
           file: ./Dockerfile.optimized
           push: true
+          # Added multi-platform support
+          platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/${{ github.repository }}:minimal
             ${{ steps.meta.outputs.tags }}-minimal
-          labels: ${{ steps.meta.outputs.labels }}
+          labels: |
+            ${{ steps.meta.outputs.labels }}
+            org.opencontainers.image.description=ComplianceAsCode builder (minimal version)
+            org.opencontainers.image.vendor=MITRE
+            org.opencontainers.image.licenses=Apache-2.0
           cache-from: type=gha
           cache-to: type=gha,mode=max
       
@@ -95,12 +107,41 @@ jobs:
           # Directly use the actual Dockerfile instead of a symlink
           file: ./Dockerfile
           push: true
+          # Added multi-platform support
+          platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/${{ github.repository }}:latest
             ghcr.io/${{ github.repository }}:full
             ${{ steps.meta.outputs.tags }}-full
-          labels: ${{ steps.meta.outputs.labels }}
+          labels: |
+            ${{ steps.meta.outputs.labels }}
+            org.opencontainers.image.description=ComplianceAsCode builder (full version with pre-built content)
+            org.opencontainers.image.vendor=MITRE
+            org.opencontainers.image.licenses=Apache-2.0
           build-args: |
             BUILD_TYPE=full
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      
+      # Make packages public
+      - name: Make packages public
+        run: |
+          # Get package names
+          MINIMAL_PKG=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):minimal
+          FULL_PKG=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):latest
+          
+          echo "Setting $MINIMAL_PKG to public..."
+          gh api --method PATCH \
+            /user/packages/container/$MINIMAL_PKG/visibility \
+            -f visibility="public" \
+            -H "Accept: application/vnd.github+json"
+          
+          echo "Setting $FULL_PKG to public..."
+          gh api --method PATCH \
+            /user/packages/container/$FULL_PKG/visibility \
+            -f visibility="public" \
+            -H "Accept: application/vnd.github+json"
+          
+          echo "Package visibility updated to public"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
