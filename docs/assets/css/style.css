@@ -1,0 +1,81 @@
+/* Custom styles for the MITRE CAC Builder documentation */
+
+/* Site logo styling */
+.site-logo {
+  width: 100%;
+  height: auto;
+  max-width: 250px;
+}
+
+/* Improve code block contrast in dark mode */
+.highlight {
+  background-color: #2d2d2d !important;
+}
+
+/* Code syntax highlighting */
+.highlight .c1 { color: #75715e !important; } /* comments */
+.highlight .s1, .highlight .s2 { color: #a6e22e !important; } /* strings */
+.highlight .k, .highlight .kd { color: #66d9ef !important; } /* keywords */
+.highlight .nb { color: #f8f8f2 !important; } /* built-in names */
+.highlight .nf { color: #a6e22e !important; } /* function names */
+.highlight .o { color: #f92672 !important; } /* operators */
+
+/* Improve link styling */
+a:not(.btn) {
+  text-decoration: none;
+}
+
+a:not(.btn):hover {
+  text-decoration: underline;
+}
+
+/* Improve table styling */
+table th {
+  background-color: #2d2d2d !important;
+}
+
+table tr:nth-child(odd) {
+  background-color: #333 !important;
+}
+
+table tr:nth-child(even) {
+  background-color: #3a3a3a !important;
+}
+
+/* Add a border to images */
+img:not(.site-logo) {
+  border: 1px solid #555 !important;
+  border-radius: 4px !important;
+}
+
+/* Improve callouts and notes */
+blockquote {
+  background-color: #2d2d2d !important;
+  border-left: 4px solid #0366d6 !important;
+  padding: 0.5em 1em !important;
+  margin-left: 0 !important;
+}
+
+blockquote p:first-child {
+  margin-top: 0 !important;
+}
+
+blockquote p:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Improve spacing for content */
+.main-content {
+  padding-top: 2rem !important;
+}
+
+/* Add extra margin to headings */
+h1, h2, h3, h4, h5, h6 {
+  margin-top: 1.5em !important;
+  margin-bottom: 0.5em !important;
+}
+
+/* Improve first heading */
+.main-content > h1:first-of-type {
+  margin-top: 0.5em !important;
+}

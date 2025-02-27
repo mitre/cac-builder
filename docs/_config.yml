@@ -7,6 +7,10 @@ url: "https://mitre.github.io" # the base hostname & protocol
 remote_theme: just-the-docs/just-the-docs
 color_scheme: dark
 
+# Add custom CSS
+head_custom: >-
+  <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
+
 # Enable or disable the site search
 search_enabled: true
 # Supports true (default) or false
@@ -53,41 +57,3 @@ gh_edit_repository: "https://github.com/mitre/cac-builder"
 gh_edit_branch: "main"
 gh_edit_view_mode: "tree"
 gh_edit_source: docs
-
-# Navigation structure
-nav:
-  - title: Home
-    url: /
-  - title: Getting Started
-    url: /getting-started/
-    children:
-      - title: Prerequisites
-        url: /getting-started/prerequisites/
-      - title: Installation
-        url: /getting-started/installation/
-      - title: Configuration
-        url: /getting-started/configuration/
-      - title: First Build
-        url: /getting-started/first-build/
-      - title: Troubleshooting
-        url: /getting-started/troubleshooting/
-  - title: Documentation
-    url: /documentation/
-    children:
-      - title: Build Types
-        url: /documentation/build-types/
-      - title: Certificate Management
-        url: /documentation/certificate-management/
-      - title: Workflow Options
-        url: /documentation/workflow-options/
-      - title: Project Structure
-        url: /documentation/project-structure/
-  - title: Development
-    url: /development/
-    children:
-      - title: Contributing
-        url: /development/contributing/
-      - title: Local Development
-        url: /development/local-workflow/
-      - title: Installing Act
-        url: /development/installing-act/
