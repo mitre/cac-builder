@@ -1,0 +1,19 @@
+{
+  "name": "cac-builder-presentation",
+  "private": true,
+  "scripts": {
+    "prepare": "bash copy-assets.sh",
+    "dev": "npm run prepare && slidev cac-builder-intro.md --open",
+    "build": "npm run prepare && slidev build cac-builder-intro.md",
+    "export": "npm run prepare && slidev export cac-builder-intro.md",
+    "start": "npm run dev"
+  },
+  "dependencies": {
+    "@slidev/cli": "^0.42.5",
+    "@slidev/theme-default": "^0.21.2",
+    "@slidev/theme-seriph": "^0.21.3"
+  },
+  "devDependencies": {
+    "rollup-plugin-node-polyfills": "^0.2.1"
+  }
+}
