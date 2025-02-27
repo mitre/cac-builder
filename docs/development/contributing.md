@@ -11,11 +11,24 @@ Thank you for considering contributing to ComplianceAsCode Builder! This documen
 
 ## Code of Conduct
 
-Please be respectful and considerate of others when contributing to this project. We expect all contributors to adhere to our [Code of Conduct](CODE_OF_CONDUCT.md).
+Please be respectful and considerate of others when contributing to this project. We expect all contributors to adhere to our [Code of Conduct]({{< relref "/development/code-of-conduct" >}}).
 
 ## Project Structure
 
-Before contributing, please familiarize yourself with the [project structure](PROJECT-STRUCTURE.md).
+Before contributing, please familiarize yourself with the [project structure]({{< relref "/documentation/project-structure" >}}).
+
+## Help Wanted
+
+We're currently looking for help with the following areas:
+
+- Additional product support beyond RHEL10 and Ubuntu 24.04
+- Performance improvements for build processes
+- Enhanced CI/CD integration examples
+- Additional documentation for advanced use cases
+- Multi-architecture container support
+- Creating downloadable build artifacts (zip/tar.gz of RHEL10 and Ubuntu 24.04 SCAP content) for the documentation site
+
+These areas are great places to start if you're looking to make a meaningful contribution to the project.
 
 ## How to Contribute
 

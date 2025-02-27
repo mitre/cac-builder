@@ -2,7 +2,25 @@
 
 This project provides Docker-based tooling for working with the [ComplianceAsCode/content](https://github.com/ComplianceAsCode/content) project, enabling easy generation of SCAP content for various platforms.
 
-## Quick Start
+## Pre-built Containers
+
+We provide ready-to-use container images on GitHub Container Registry:
+
+```bash
+# Pull the full version (with pre-built RHEL10 and Ubuntu 24.04)
+docker pull ghcr.io/mitre/cac-builder:full
+
+# Pull the minimal version (smaller size, build products on-demand)
+docker pull ghcr.io/mitre/cac-builder:minimal
+
+# Run the container
+docker run -it --name compliance-as-code -v $(pwd)/output:/output ghcr.io/mitre/cac-builder:full bash
+
+# Inside the container, the pre-built products are already available
+ls /content/build/
+```
+
+## Quick Start (Building Locally)
 
 ```bash
 # Setup the environment
@@ -19,7 +37,7 @@ docker exec -it compliance-as-code bash
 build-product rhel10
 ```
 
-For detailed setup instructions, see [Setting Up Your Local Development Environment](docs/setup-local-development.md).
+For detailed setup instructions, see our [documentation site](https://mitre.github.io/cac-builder/).
 
 ## Directory Structure
 
@@ -208,13 +226,27 @@ For details on certificate management, see [docs/CERTIFICATES.md](docs/CERTIFICA
 
 Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details and review our [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
 
+## Help Wanted / Future Improvements
+
+We're looking for help with the following areas:
+
+- Additional product support beyond RHEL10 and Ubuntu 24.04
+- Performance improvements for build processes
+- Enhanced CI/CD integration examples
+- Additional documentation for advanced use cases
+- Multi-architecture container support
+- Creating downloadable build artifacts (zip/tar.gz of RHEL10 and Ubuntu 24.04 SCAP content) for the documentation site
+
+If you're interested in working on these or other improvements, please check our [open issues](https://github.com/mitre/cac-builder/issues) or create a new one to discuss your ideas.
+
 ## Development
 
 For developers looking to contribute or modify this project:
 
-- [Setup Local Development](docs/setup-local-development.md): Complete environment setup guide
-- [Local Development Workflow](docs/local-development.md): Development best practices
-- [Project Structure](PROJECT-STRUCTURE.md): Codebase organization
+- [Documentation Site](https://mitre.github.io/cac-builder/): Comprehensive project documentation
+- [Setup Local Development](https://mitre.github.io/cac-builder/getting-started/setup/): Complete environment setup guide
+- [Local Development Workflow](https://mitre.github.io/cac-builder/development/local-workflow/): Development best practices
+- [Project Structure](https://mitre.github.io/cac-builder/documentation/project-structure/): Codebase organization
 
 ## Notices
 
