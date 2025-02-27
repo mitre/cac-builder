@@ -10,12 +10,11 @@ on:
 permissions:
   contents: read  # For checking out code
   packages: read  # For pulling container images
-  # Note: For PR builds, we don't need write permissions
 
 jobs:
-  build:
-    name: Build and Test Containers
-    runs-on: ubuntu-latest
+  build-amd64:
+    name: Build and Test (Linux AMD64)
+    runs-on: ubuntu-latest # Standard x86_64 runner
     
     steps:
       - name: Checkout repository
@@ -37,25 +36,15 @@ jobs:
           CA_BUNDLE_PART8: ${{ secrets.CA_BUNDLE_PART8 }}
           CA_BUNDLE_PART9: ${{ secrets.CA_BUNDLE_PART9 }}
         run: |
-          # Use the dedicated script to assemble certificates with validation
           ./scripts/assemble-certificates.sh --verify
-          
-          # Show the assembled certificate info
-          ls -la certs/org/
-
-      - name: Prepare Dockerfiles
-        run: |
-          # Instead of relying on symlinks, directly reference the actual files
-          echo "Using Dockerfile for full build"
-          echo "Using Dockerfile.optimized for minimal build"
       
-      - name: Build minimal container
+      - name: Build amd64 minimal container
         uses: docker/build-push-action@v4
         with:
           context: .
-          # Directly use the actual Dockerfile.optimized instead of a symlink
           file: ./Dockerfile.optimized
           push: false
+          platforms: linux/amd64
           tags: cac-builder:minimal-test
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -65,13 +54,13 @@ jobs:
         run: |
           docker run --rm cac-builder:minimal-test -c "mkdir -p /content/build && cd /content/build && cmake .. && echo 'Build environment test: SUCCESS'"
       
-      - name: Build full container
+      - name: Build amd64 full container
         uses: docker/build-push-action@v4
         with:
           context: .
-          # Directly use the actual Dockerfile instead of a symlink
           file: ./Dockerfile
           push: false
+          platforms: linux/amd64
           tags: cac-builder:full-test
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -82,8 +71,201 @@ jobs:
       - name: Test full container
         run: |
           mkdir -p output
-          docker run -v ${{ github.workspace }}/output:/output --rm cac-builder:full-test -c "ls /content/build/ssg-* && cp /content/build/ssg-rhel* /output/ 2>/dev/null || echo 'No content found, checking build environment'"
-          
-      - name: Verify output files (full build only)
+          docker run -v ${{ github.workspace }}/output:/output --rm cac-builder:full-test -c "ls /content/build/ssg-* && cp /content/build/ssg-* /output/ 2>/dev/null || echo 'No content found, checking build environment'"
+      
+      - name: Collect build info
         run: |
-          ls -la output/ || echo "No output files found - this is expected in PR builds"
+          # Create a detailed build-info file
+          {
+            echo "===== AMD64 Build Information ====="
+            echo "Build timestamp: $(date)"
+            echo "Architecture: amd64"
+            echo "Runner: ${{ runner.os }}"
+            echo "Build triggered by: ${{ github.event_name }}"
+            echo "Job ID: ${{ github.job }}"
+            echo "Commit: ${{ github.sha }}"
+            
+            echo "===== Output Files ====="
+            if [ "$(ls -A output/ 2>/dev/null)" ]; then
+              find output -type f -name "*.xml" | sort > output/amd64-file-list.txt
+              
+              echo "File listing:"
+              cat output/amd64-file-list.txt
+              
+              echo "File sizes:"
+              find output -type f -name "*.xml" -exec du -h {} \; | sort -h
+            else
+              echo "No output files found."
+            fi
+          } > output/amd64-build-info.txt
+      
+      - name: Upload amd64 artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: cac-test-content-amd64
+          path: |
+            output/*.xml
+            output/*.xccdf.xml
+            output/*.ds.xml
+            output/amd64-build-info.txt
+            output/amd64-file-list.txt
+          if-no-files-found: warn
+          retention-days: 7
+  
+  build-arm64:
+    name: Build and Test (Apple Silicon ARM64)
+    runs-on: macos-14 # macOS Sonoma with Apple Silicon
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Check system information
+        run: |
+          echo "OS: $(uname -s)"
+          echo "Architecture: $(uname -m)"
+          echo "Processor: $(sysctl -n machdep.cpu.brand_string)"
+      
+      - name: Install Docker for Apple Silicon
+        run: |
+          # Install latest Docker Desktop for Apple Silicon
+          curl -L https://desktop.docker.com/mac/main/arm64/Docker.dmg -o Docker.dmg
+          sudo hdiutil attach Docker.dmg
+          sudo cp -R "/Volumes/Docker/Docker.app" /Applications/
+          sudo hdiutil detach "/Volumes/Docker"
+          open -a "/Applications/Docker.app" --args --unattended
+          
+          # Wait for Docker to start
+          echo "Waiting for Docker to start..."
+          timeout=60
+          while ! docker info > /dev/null 2>&1; do
+            if [ "$timeout" -le 0 ]; then
+              echo "Docker failed to start"
+              exit 1
+            fi
+            sleep 1
+            timeout=$((timeout - 1))
+          done
+          echo "Docker is running"
+          
+          # Show Docker info
+          docker info
+      
+      - name: Create certificate file for build
+        env:
+          CA_BUNDLE: ${{ secrets.CA_BUNDLE }}
+          CA_BUNDLE_PART1: ${{ secrets.CA_BUNDLE_PART1 }}
+          CA_BUNDLE_PART2: ${{ secrets.CA_BUNDLE_PART2 }}
+          CA_BUNDLE_PART3: ${{ secrets.CA_BUNDLE_PART3 }}
+          CA_BUNDLE_PART4: ${{ secrets.CA_BUNDLE_PART4 }}
+          CA_BUNDLE_PART5: ${{ secrets.CA_BUNDLE_PART5 }}
+          CA_BUNDLE_PART6: ${{ secrets.CA_BUNDLE_PART6 }}
+          CA_BUNDLE_PART7: ${{ secrets.CA_BUNDLE_PART7 }}
+          CA_BUNDLE_PART8: ${{ secrets.CA_BUNDLE_PART8 }}
+          CA_BUNDLE_PART9: ${{ secrets.CA_BUNDLE_PART9 }}
+        run: |
+          ./scripts/assemble-certificates.sh --verify
+      
+      - name: Build arm64 minimal container
+        run: |
+          docker build -t cac-builder:minimal-test-arm64 -f Dockerfile.optimized .
+      
+      - name: Test minimal container
+        run: |
+          docker run --rm cac-builder:minimal-test-arm64 -c "mkdir -p /content/build && cd /content/build && cmake .. && echo 'Build environment test: SUCCESS'"
+      
+      - name: Build arm64 full container
+        run: |
+          docker build -t cac-builder:full-test-arm64 -f Dockerfile --build-arg BUILD_TYPE=full .
+      
+      - name: Test full container
+        run: |
+          mkdir -p output
+          docker run -v ${{ github.workspace }}/output:/output --rm cac-builder:full-test-arm64 -c "ls /content/build/ssg-* && cp /content/build/ssg-* /output/ 2>/dev/null || echo 'No content found, checking build environment'"
+      
+      - name: Collect build info
+        run: |
+          # Create a detailed build-info file
+          {
+            echo "===== ARM64 Build Information ====="
+            echo "Build timestamp: $(date)"
+            echo "Architecture: arm64"
+            echo "Runner: ${{ runner.os }} (Apple Silicon)"
+            echo "Build triggered by: ${{ github.event_name }}"
+            echo "Job ID: ${{ github.job }}"
+            echo "Commit: ${{ github.sha }}"
+            
+            echo "===== Output Files ====="
+            if [ "$(ls -A output/ 2>/dev/null)" ]; then
+              find output -type f -name "*.xml" | sort > output/arm64-file-list.txt
+              
+              echo "File listing:"
+              cat output/arm64-file-list.txt
+              
+              echo "File sizes:"
+              find output -type f -name "*.xml" -exec du -h {} \; | sort -h
+            else
+              echo "No output files found."
+            fi
+          } > output/arm64-build-info.txt
+      
+      - name: Upload arm64 artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: cac-test-content-arm64
+          path: |
+            output/*.xml
+            output/*.xccdf.xml
+            output/*.ds.xml
+            output/arm64-build-info.txt
+            output/arm64-file-list.txt
+          if-no-files-found: warn
+          retention-days: 7
+  
+  summarize:
+    name: Generate Build Summary
+    needs: [build-amd64, build-arm64]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+      
+      - name: Prepare summary report
+        run: |
+          mkdir -p summary
+          echo "# CAC-Builder Test Results" > summary/README.md
+          echo "" >> summary/README.md
+          echo "## Build Summary" >> summary/README.md
+          echo "- Date: $(date)" >> summary/README.md
+          echo "- Commit: ${{ github.sha }}" >> summary/README.md
+          echo "- Triggered by: ${{ github.event_name }}" >> summary/README.md
+          echo "" >> summary/README.md
+          
+          echo "## AMD64 Build" >> summary/README.md
+          if [ -f artifacts/cac-test-content-amd64/amd64-build-info.txt ]; then
+            echo '```' >> summary/README.md
+            cat artifacts/cac-test-content-amd64/amd64-build-info.txt >> summary/README.md
+            echo '```' >> summary/README.md
+          else
+            echo "No AMD64 build info available" >> summary/README.md
+          fi
+          
+          echo "" >> summary/README.md
+          echo "## ARM64 Build" >> summary/README.md
+          if [ -f artifacts/cac-test-content-arm64/arm64-build-info.txt ]; then
+            echo '```' >> summary/README.md
+            cat artifacts/cac-test-content-arm64/arm64-build-info.txt >> summary/README.md
+            echo '```' >> summary/README.md
+          else
+            echo "No ARM64 build info available" >> summary/README.md
+          fi
+      
+      - name: Upload summary
+        uses: actions/upload-artifact@v3
+        with:
+          name: cac-builder-test-summary
+          path: summary/
+          retention-days: 14
