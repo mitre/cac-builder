@@ -12,11 +12,10 @@ permissions:
   packages: write    # Needed to push to GitHub Container Registry
 
 jobs:
-  # First build on amd64
-  build-amd64:
-    name: Build AMD64 Containers
+  build-publish:
+    name: Build and Publish Containers
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,6 +23,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: 'arm64'
+      
       - name: Create certificate file for build
         env:
           CA_BUNDLE: ${{ secrets.CA_BUNDLE }}
@@ -57,25 +61,29 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=sha,format=long
       
-      - name: Build and push minimal amd64 container
+      # Build and push minimal for amd64+arm64
+      - name: Build and push minimal container
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile.optimized
           push: true
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           tags: |
-            ghcr.io/${{ github.repository }}:minimal-amd64
-            ${{ steps.meta.outputs.tags }}-minimal-amd64
+            ghcr.io/${{ github.repository }}:minimal
+            ghcr.io/${{ github.repository }}:slim
+            ${{ steps.meta.outputs.tags }}-slim
           labels: |
             ${{ steps.meta.outputs.labels }}
-            org.opencontainers.image.description=ComplianceAsCode builder (minimal version, amd64)
+            org.opencontainers.image.description=ComplianceAsCode builder (minimal version)
             org.opencontainers.image.vendor=MITRE
             org.opencontainers.image.licenses=Apache-2.0
+            org.opencontainers.image.documentation=https://github.com/mitre/cac-builder#readme
           cache-from: type=gha
           cache-to: type=gha,mode=max
       
-      - name: Build and push full amd64 container
+      # Build full container only for amd64 for now
+      - name: Build and push full container
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -83,307 +91,55 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: |
-            ghcr.io/${{ github.repository }}:full-amd64
-            ${{ steps.meta.outputs.tags }}-full-amd64
+            ghcr.io/${{ github.repository }}:full
+            ghcr.io/${{ github.repository }}:latest
+            ${{ steps.meta.outputs.tags }}
           labels: |
             ${{ steps.meta.outputs.labels }}
-            org.opencontainers.image.description=ComplianceAsCode builder (full version, amd64)
+            org.opencontainers.image.description=ComplianceAsCode builder (full version)
             org.opencontainers.image.vendor=MITRE
             org.opencontainers.image.licenses=Apache-2.0
+            org.opencontainers.image.documentation=https://github.com/mitre/cac-builder#readme
           build-args: |
             BUILD_TYPE=full
           cache-from: type=gha
           cache-to: type=gha,mode=max
-  
-  # Then build on arm64 (Apple Silicon)
-  build-arm64:
-    name: Build ARM64 Containers
-    runs-on: macos-14  # Apple Silicon runner
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
       
-      - name: Setup Docker with Lima directly
-        run: |
-          # Install Lima and Docker CLI
-          brew install lima docker
-          
-          # Create a Lima config file optimized for GitHub Actions
-          cat > lima-config.yaml << EOF
-          # Lima configuration optimized for GitHub Actions
-          # Lima expects "aarch64" not "arm64" for architecture
-          arch: "aarch64"
-          images:
-          - location: "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img"
-            arch: "aarch64"
-          - location: "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
-            arch: "x86_64"
-          memory: "8GiB"
-          disk: "50GiB"
-          cpus: 4
-          mounts:
-          - location: "~"
-            writable: true
-          - location: "/tmp/lima"
-            writable: true
-          - location: "$(pwd)"
-            mountPoint: "/workdir"
-            writable: true
-          provision:
-          - mode: system
-            script: |
-              #!/bin/bash
-              apt-get update && apt-get install -y ca-certificates curl
-              install -m 0755 -d /etc/apt/keyrings
-              curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-              chmod a+r /etc/apt/keyrings/docker.asc
-              echo "deb [arch=\$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \$(. /etc/os-release && echo "\$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-              apt-get update && apt-get install -y docker-ce docker-ce-cli containerd.io
-              usermod -aG docker ubuntu
-          portForwards:
-          - guestSocket: "/var/run/docker.sock"
-            hostSocket: "$(pwd)/docker.sock"
-          EOF
-          
-          # Create a temporary directory for Lima
-          mkdir -p /tmp/lima
-          
-          # Start Lima with the config
-          echo "Starting Lima with native ARM64 support..."
-          limactl start --name=docker --tty=false ./lima-config.yaml
-          
-          # Set Docker socket location
-          export DOCKER_HOST="unix://$(pwd)/docker.sock"
-          echo "DOCKER_HOST=unix://$(pwd)/docker.sock" >> $GITHUB_ENV
-          
-          # Wait for Docker to be available
-          echo "Waiting for Docker to be available..."
-          timeout=60
-          until docker version &>/dev/null || [ $timeout -eq 0 ]; do
-            sleep 2
-            echo "Waiting for Docker... ($timeout seconds left)"
-            ((timeout-=2))
-          done
-          
-          if docker version &>/dev/null; then
-            echo "Docker is running with native ARM64 support"
-            docker version
-            docker info | grep "Architecture\|Operating System"
-          else
-            echo "Docker failed to start"
-            limactl list
-            exit 1
-          fi
-      
-      - name: Create certificate file for build
-        env:
-          CA_BUNDLE: ${{ secrets.CA_BUNDLE }}
-          CA_BUNDLE_PART1: ${{ secrets.CA_BUNDLE_PART1 }}
-          CA_BUNDLE_PART2: ${{ secrets.CA_BUNDLE_PART2 }}
-          CA_BUNDLE_PART3: ${{ secrets.CA_BUNDLE_PART3 }}
-          CA_BUNDLE_PART4: ${{ secrets.CA_BUNDLE_PART4 }}
-          CA_BUNDLE_PART5: ${{ secrets.CA_BUNDLE_PART5 }}
-          CA_BUNDLE_PART6: ${{ secrets.CA_BUNDLE_PART6 }}
-          CA_BUNDLE_PART7: ${{ secrets.CA_BUNDLE_PART7 }}
-          CA_BUNDLE_PART8: ${{ secrets.CA_BUNDLE_PART8 }}
-          CA_BUNDLE_PART9: ${{ secrets.CA_BUNDLE_PART9 }}
-        run: |
-          ./scripts/assemble-certificates.sh --verify
-      
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,format=long
-      
-      - name: Build and push minimal arm64 container
-        run: |
-          # Build the image
-          ./docker-exec.sh build -t ghcr.io/${{ github.repository }}:minimal-arm64 -f Dockerfile.optimized .
-          
-          # Tag with additional tags
-          ./docker-exec.sh tag ghcr.io/${{ github.repository }}:minimal-arm64 ghcr.io/${{ github.repository }}:${{ github.ref_name }}-minimal-arm64
-          
-          # Login to ghcr.io inside container
-          echo "${{ secrets.GITHUB_TOKEN }}" | ./docker-exec.sh login ghcr.io -u ${{ github.actor }} --password-stdin
-          
-          # Push all tags
-          ./docker-exec.sh push ghcr.io/${{ github.repository }}:minimal-arm64
-          ./docker-exec.sh push ghcr.io/${{ github.repository }}:${{ github.ref_name }}-minimal-arm64
-      
-      - name: Build and push full arm64 container
-        run: |
-          # Build the image
-          docker build -t ghcr.io/${{ github.repository }}:full-arm64 -f Dockerfile --build-arg BUILD_TYPE=full .
-          
-          # Tag with additional tags
-          docker tag ghcr.io/${{ github.repository }}:full-arm64 ghcr.io/${{ github.repository }}:${{ github.ref_name }}-full-arm64
-          
-          # Push all tags
-          docker push ghcr.io/${{ github.repository }}:full-arm64
-          docker push ghcr.io/${{ github.repository }}:${{ github.ref_name }}-full-arm64
-  
-  # Create manifest lists to combine amd64 and arm64 images
-  create-manifests:
-    name: Create Multi-platform Manifests
-    needs: [build-amd64, build-arm64]
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Create manifest for minimal container
-        run: |
-          docker manifest create \
-            ghcr.io/${{ github.repository }}:minimal \
-            ghcr.io/${{ github.repository }}:minimal-amd64 \
-            ghcr.io/${{ github.repository }}:minimal-arm64
-          
-          docker manifest annotate \
-            ghcr.io/${{ github.repository }}:minimal \
-            ghcr.io/${{ github.repository }}:minimal-amd64 \
-            --os linux --arch amd64
-          
-          docker manifest annotate \
-            ghcr.io/${{ github.repository }}:minimal \
-            ghcr.io/${{ github.repository }}:minimal-arm64 \
-            --os linux --arch arm64 --variant v8
-          
-          docker manifest push ghcr.io/${{ github.repository }}:minimal
-      
-      - name: Create manifest for full container
-        run: |
-          docker manifest create \
-            ghcr.io/${{ github.repository }}:latest \
-            ghcr.io/${{ github.repository }}:full-amd64 \
-            ghcr.io/${{ github.repository }}:full-arm64
-          
-          docker manifest annotate \
-            ghcr.io/${{ github.repository }}:latest \
-            ghcr.io/${{ github.repository }}:full-amd64 \
-            --os linux --arch amd64
-          
-          docker manifest annotate \
-            ghcr.io/${{ github.repository }}:latest \
-            ghcr.io/${{ github.repository }}:full-arm64 \
-            --os linux --arch arm64 --variant v8
-          
-          docker manifest push ghcr.io/${{ github.repository }}:latest
-          
-          # Also create a 'full' manifest
-          docker manifest create \
-            ghcr.io/${{ github.repository }}:full \
-            ghcr.io/${{ github.repository }}:full-amd64 \
-            ghcr.io/${{ github.repository }}:full-arm64
-          
-          docker manifest annotate \
-            ghcr.io/${{ github.repository }}:full \
-            ghcr.io/${{ github.repository }}:full-amd64 \
-            --os linux --arch amd64
-          
-          docker manifest annotate \
-            ghcr.io/${{ github.repository }}:full \
-            ghcr.io/${{ github.repository }}:full-arm64 \
-            --os linux --arch arm64 --variant v8
-          
-          docker manifest push ghcr.io/${{ github.repository }}:full
-      
-      # Create version-specific manifests if this is a tag
-      - name: Create versioned manifests for tags
+      # Create versioned tags for releases
+      - name: Create versioned tags for releases
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           VERSION=${{ github.ref_name }}
           
-          # For minimal
-          docker manifest create \
-            ghcr.io/${{ github.repository }}:${VERSION}-minimal \
-            ghcr.io/${{ github.repository }}:${VERSION}-minimal-amd64 \
-            ghcr.io/${{ github.repository }}:${VERSION}-minimal-arm64
+          # Tag minimal with version
+          docker buildx imagetools create \
+            --tag ghcr.io/${{ github.repository }}:${VERSION}-slim \
+            ghcr.io/${{ github.repository }}:slim
           
-          docker manifest annotate \
-            ghcr.io/${{ github.repository }}:${VERSION}-minimal \
-            ghcr.io/${{ github.repository }}:${VERSION}-minimal-amd64 \
-            --os linux --arch amd64
+          # Tag full with version
+          docker buildx imagetools create \
+            --tag ghcr.io/${{ github.repository }}:${VERSION} \
+            ghcr.io/${{ github.repository }}:latest
           
-          docker manifest annotate \
-            ghcr.io/${{ github.repository }}:${VERSION}-minimal \
-            ghcr.io/${{ github.repository }}:${VERSION}-minimal-arm64 \
-            --os linux --arch arm64 --variant v8
+          # Add -full suffix tag for those who prefer explicit naming
+          docker buildx imagetools create \
+            --tag ghcr.io/${{ github.repository }}:${VERSION}-full \
+            ghcr.io/${{ github.repository }}:latest
           
-          docker manifest push ghcr.io/${{ github.repository }}:${VERSION}-minimal
-          
-          # For full
-          docker manifest create \
-            ghcr.io/${{ github.repository }}:${VERSION}-full \
-            ghcr.io/${{ github.repository }}:${VERSION}-full-amd64 \
-            ghcr.io/${{ github.repository }}:${VERSION}-full-arm64
-          
-          docker manifest annotate \
-            ghcr.io/${{ github.repository }}:${VERSION}-full \
-            ghcr.io/${{ github.repository }}:${VERSION}-full-amd64 \
-            --os linux --arch amd64
-          
-          docker manifest annotate \
-            ghcr.io/${{ github.repository }}:${VERSION}-full \
-            ghcr.io/${{ github.repository }}:${VERSION}-full-arm64 \
-            --os linux --arch arm64 --variant v8
-          
-          docker manifest push ghcr.io/${{ github.repository }}:${VERSION}-full
-          
-          # Also create a version tag without -full suffix
-          docker manifest create \
-            ghcr.io/${{ github.repository }}:${VERSION} \
-            ghcr.io/${{ github.repository }}:${VERSION}-full-amd64 \
-            ghcr.io/${{ github.repository }}:${VERSION}-full-arm64
-          
-          docker manifest annotate \
-            ghcr.io/${{ github.repository }}:${VERSION} \
-            ghcr.io/${{ github.repository }}:${VERSION}-full-amd64 \
-            --os linux --arch amd64
-          
-          docker manifest annotate \
-            ghcr.io/${{ github.repository }}:${VERSION} \
-            ghcr.io/${{ github.repository }}:${VERSION}-full-arm64 \
-            --os linux --arch arm64 --variant v8
-          
-          docker manifest push ghcr.io/${{ github.repository }}:${VERSION}
-      
       # Make packages public
       - name: Make packages public
         run: |
-          # Get package names
-          MINIMAL_PKG=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):minimal
-          FULL_PKG=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):latest
+          # Get package name base
+          REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           
-          echo "Setting $MINIMAL_PKG to public..."
-          gh api --method PATCH \
-            /user/packages/container/$MINIMAL_PKG/visibility \
-            -f visibility="public" \
-            -H "Accept: application/vnd.github+json"
-          
-          echo "Setting $FULL_PKG to public..."
-          gh api --method PATCH \
-            /user/packages/container/$FULL_PKG/visibility \
-            -f visibility="public" \
-            -H "Accept: application/vnd.github+json"
+          # For each tag, make packages public
+          for TAG in minimal slim full latest; do
+            echo "Setting $REPO:$TAG to public..."
+            gh api --method PATCH \
+              /user/packages/container/$REPO/visibility \
+              -f visibility="public" \
+              -H "Accept: application/vnd.github+json" || true
+          done
           
           echo "Package visibility updated to public"
         env:

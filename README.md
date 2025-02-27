@@ -1,6 +1,57 @@
-# ComplianceAsCode Builder
+# CAC-Builder: ComplianceAsCode Builder Container
 
-This project provides Docker-based tooling for working with the [ComplianceAsCode/content](https://github.com/ComplianceAsCode/content) project, enabling easy generation of SCAP content for various platforms.
+Container for building [ComplianceAsCode](https://github.com/ComplianceAsCode/content) security compliance content.
+
+## Available Images
+
+| Image Tag | Description | Architectures |
+|-----------|-------------|--------------|
+| `ghcr.io/mitre/cac-builder:latest` | Full version with pre-built content | AMD64 |
+| `ghcr.io/mitre/cac-builder:slim` | Minimal version (build as needed) | AMD64, ARM64 |
+| `ghcr.io/mitre/cac-builder:X.Y.Z` | Version-specific full image | AMD64 |
+| `ghcr.io/mitre/cac-builder:X.Y.Z-slim` | Version-specific minimal image | AMD64, ARM64 |
+
+> **Note:** ARM64 support for the full image is pending stable GitHub Actions macOS Apple Silicon runners.
+
+## Quick Start
+
+```bash
+# Pull the minimal container
+docker pull ghcr.io/mitre/cac-builder:slim
+
+# Run with mounted output directory
+docker run -it --rm -v $(pwd)/output:/output ghcr.io/mitre/cac-builder:slim
+
+# Build specific product
+docker run -it --rm -v $(pwd)/output:/output ghcr.io/mitre/cac-builder:slim -c "
+  cd /content
+  ./build_product rhel9
+  cp /content/build/ssg-rhel9-* /output/
+"
+
+# Using the full container with pre-built content
+docker run -it --rm -v $(pwd)/output:/output ghcr.io/mitre/cac-builder:latest -c "
+  cp /content/build/ssg-* /output/
+"
+```
+
+## Multi-Architecture Support
+
+- **AMD64 (x86_64)**: Full support for both minimal and full containers
+- **ARM64 (Apple Silicon)**: Support for minimal container, full container pending GitHub Actions improvements
+
+## Using with GitHub Actions
+
+```yaml
+- name: Build compliance content
+  run: |
+    docker run -v ${{ github.workspace }}/output:/output \
+      ghcr.io/mitre/cac-builder:slim -c "
+        cd /content && ./build_product rhel9 && \
+        cp /content/build/ssg-rhel9-* /output/"
+```
+
+For full documentation, see [docs/](./docs/).
 
 ## Pre-built Containers
 
@@ -85,7 +136,7 @@ You can configure certificates for secure connections:
 
 1. **Default Certificate**
    - Automatically looked for in the project setup
-   - Place certificate at `./certs/org/mitre-ca-bundle.pem`
+   - Place certificate at `./certs/org/ca-bundle.pem`
 
 2. **Custom CA Certificate**
    - Specify with `--cert` option
@@ -202,21 +253,22 @@ docker-compose build --no-cache
 docker-compose up -d
 ```
 
-## For MITRE Team Members
+## For Team Members Behind Corporate Proxies
 
-When using this project within the MITRE network:
+When using this project behind corporate proxies or firewalls:
 
 1. **Using Pre-built Containers**:
-   - The containers published to GitHub Container Registry are alreaady configured for MITRE.
-   - You can pull and use them directly:
+   - The containers published to GitHub Container Registry are already configured with standard CA certificates
+   - You may need to mount your organization's CA certificate:
 
    ```bash
-   docker pull ghcr.io/mitre/cac-builder:full
+   docker run -v /path/to/ca-bundle.pem:/etc/ssl/certs/ca-bundle.pem \
+     -it ghcr.io/mitre/cac-builder:full
    ```
 
 2. **Building Locally**:
    - Clone the repository
-   - Place your company CA bundle at `./certs/org/your-ca-bundle.pem` if you are behind a corporate proxy or firewall.
+   - Place your organization's CA bundle at `./certs/org/ca-bundle.pem` if needed
    - Run `./setup.sh`
    - Build with `docker-compose build`
 
@@ -255,3 +307,16 @@ See [NOTICE.md](NOTICE.md) for attribution and copyright notices.
 ## License
 
 This project is licensed under the Apache-2.0 License - see [LICENSE](LICENSE) for details.
+
+## Documentation
+
+Documentation is available in the [docs/](./docs/) directory. For project status and roadmap, see [PROJECT-STATUS.md](./PROJECT-STATUS.md).
+
+### Documentation Maintenance
+
+A helper script is available to update documentation with current project information:
+
+```bash
+# Update project status, version references, and documentation
+./scripts/update-docs.sh
+```
