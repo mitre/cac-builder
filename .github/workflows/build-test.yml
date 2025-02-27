@@ -127,31 +127,74 @@ jobs:
           echo "Architecture: $(uname -m)"
           echo "Processor: $(sysctl -n machdep.cpu.brand_string)"
       
-      - name: Setup Docker with Colima
+      - name: Setup Docker with Lima directly
         run: |
-          # Install Homebrew packages
-          brew install docker colima
+          # Install Lima and Docker CLI
+          brew install lima docker
           
-          # Configure Colima with higher resources for our build
-          echo "Starting Colima with ARM64 configuration..."
-          colima start --cpu 4 --memory 8 --disk 50 --vm-type=vz --vz-rosetta --mount-type=virtiofs
+          # Create a Lima config file optimized for GitHub Actions
+          cat > lima-config.yaml << EOF
+          # Example lima configuration for GitHub Actions
+          arch: "$(uname -m)"
+          images:
+          - location: "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img"
+            arch: "aarch64"
+          - location: "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
+            arch: "x86_64"
+          memory: "8GiB"
+          disk: "50GiB"
+          cpus: 4
+          mounts:
+          - location: "~"
+            writable: true
+          - location: "/tmp/lima"
+            writable: true
+          - location: "$(pwd)"
+            mountPoint: "/workdir"
+            writable: true
+          provision:
+          - mode: system
+            script: |
+              #!/bin/bash
+              apt-get update && apt-get install -y ca-certificates curl
+              install -m 0755 -d /etc/apt/keyrings
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+              chmod a+r /etc/apt/keyrings/docker.asc
+              echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+              apt-get update && apt-get install -y docker-ce docker-ce-cli containerd.io
+              usermod -aG docker ubuntu
+          portForwards:
+          - guestSocket: "/var/run/docker.sock"
+            hostSocket: "$(pwd)/docker.sock"
+          EOF
           
-          # Verify Docker is running
+          # Create a temporary directory for Lima
+          mkdir -p /tmp/lima
+          
+          # Start Lima with the config
+          echo "Starting Lima with native ARM64 support..."
+          limactl start --name=docker --tty=false ./lima-config.yaml
+          
+          # Set Docker socket location
+          export DOCKER_HOST="unix://$(pwd)/docker.sock"
+          echo "DOCKER_HOST=unix://$(pwd)/docker.sock" >> $GITHUB_ENV
+          
+          # Wait for Docker to be available
           echo "Waiting for Docker to be available..."
           timeout=60
-          while ! docker version &>/dev/null && [ $timeout -gt 0 ]; do
-            echo "Waiting for Docker to be ready... ($timeout seconds left)"
+          until docker version &>/dev/null || [ $timeout -eq 0 ]; do
             sleep 2
+            echo "Waiting for Docker... ($timeout seconds left)"
             ((timeout-=2))
           done
           
           if docker version &>/dev/null; then
-            echo "Docker is running successfully"
+            echo "Docker is running with native ARM64 support"
             docker version
             docker info | grep "Architecture\|Operating System"
           else
             echo "Docker failed to start"
-            colima status
+            limactl list
             exit 1
           fi
       
